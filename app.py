@@ -10,11 +10,14 @@ import requests
 from io import BytesIO
 
 # =========================================================
-# 🔗 CONFIGURAZIONE CLOUD: https://docs.google.com/spreadsheets/d/1jggdGzGzv30wBWrCn1JhQGjBvU3op0fr-UEpsZ1SJ2I/edit?usp=sharing
+# 🔗 CONFIGURAZIONE CLOUD: LINK GOOGLE FOGLI GIÀ INSERITO
 # =========================================================
-# Incolla tra le virgolette il link "Chiunque abbia il link" del tuo Google Fogli:
-LINK_GOOGLE_FOGLI_26_27 = "INCOLLA_QUI_IL_TUO_LINK_GOOGLE_FOGLI"
-LINK_GOOGLE_FOGLI_25_26 = ""  # Opzionale: incolla qui se hai anche un foglio 2025-2026
+URL_PARTE_1 = "https://docs.google.com/spreadsheets/d/"
+URL_PARTE_2 = "1jggdGzGzv30wBWrCn1JhQGjBvU3op0fr-UEpsZ1SJ2I"
+URL_PARTE_3 = "/edit?usp=sharing"
+
+LINK_GOOGLE_FOGLI_26_27 = URL_PARTE_1 + URL_PARTE_2 + URL_PARTE_3
+LINK_GOOGLE_FOGLI_25_26 = ""
 
 # ==========================================
 # 1. IMPOSTAZIONI GENERALI E STILE AVANZATO
@@ -192,20 +195,23 @@ def load_data(stagione, custom_url=""):
     
     xls = None
     modalita_fonte = ""
+    errore_dettaglio = ""
     
     # 1. Tentativo di caricamento da Google Fogli (Cloud)
     if sheet_id:
         try:
             export_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
-            response = requests.get(export_url, timeout=15)
-            if response.status_code == 200:
+            response = requests.get(export_url, timeout=20)
+            if response.status_code == 200 and not response.content[:15].startswith(b'<!DOCTYPE html'):
                 xls = pd.ExcelFile(BytesIO(response.content))
                 ora_sync = datetime.datetime.now().strftime('%d/%m/%Y alle %H:%M')
                 modalita_fonte = f"☁️ Google Fogli ({ora_sync})"
-        except Exception:
-            xls = None
+            else:
+                errore_dettaglio = f"Il file su Google Drive è impostato su 'Con restrizioni' oppure non è stato convertito in Fogli Google (Codice HTTP {response.status_code}). Vai su Google Fogli -> Condividi -> Chiunque abbia il link."
+        except Exception as e:
+            errore_dettaglio = f"Errore tecnico durante la lettura del foglio: {str(e)}"
 
-    # 2. Fallback automatico su file Excel locale se il link Google Fogli non è ancora impostato
+    # 2. Fallback automatico su file Excel locale
     if xls is None:
         local_path = f"Statistiche Campionati {stagione}.xlsx"
         if os.path.exists(local_path):
@@ -214,7 +220,7 @@ def load_data(stagione, custom_url=""):
             ora_sync = datetime.datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y alle %H:%M')
             modalita_fonte = f"💻 File Locale ({ora_sync})"
         else:
-            return None
+            return {"Errore": errore_dettaglio} if errore_dettaglio else None
 
     dati = {}
     for sheet in ['Serie A', 'La Liga', 'Premier League', 'Partite']:
@@ -381,7 +387,6 @@ if 'custom_gsheet_url' not in st.session_state:
 
 st.sidebar.title("Dashboard Betting")
 
-# PULSANTE RAPIDO PER SMARTPHONE: Sincronizza Google Fogli in 1 click
 if st.sidebar.button("🔄 Sincronizza Google Fogli", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
@@ -393,8 +398,9 @@ if not st.session_state.pagina_impostazioni:
 
     dati_campionati = load_data(stagione_scelta, st.session_state.custom_gsheet_url)
 
-    if dati_campionati is None:
-        st.error("⚠️ Nessun database trovato. Incolla il link del tuo Google Fogli nel codice (riga 20) oppure clicca sull'ingranaggio (⚙️) nella barra laterale.")
+    if dati_campionati is None or "Errore" in dati_campionati:
+        msg_err = dati_campionati.get("Errore", "") if isinstance(dati_campionati, dict) else ""
+        st.error(f"⚠️ Impossibile leggere il database da Google Fogli. {msg_err}")
         if st.sidebar.button("⚙️ Apri Impostazioni"):
             st.session_state.pagina_impostazioni = True
             st.rerun()
@@ -1323,7 +1329,7 @@ elif st.session_state.pagina_impostazioni:
     
     with col_conf_1:
         st.subheader("🔗 Connessione Google Fogli")
-        st.markdown("Puoi testare al volo un nuovo link Google Fogli incollandolo qui sotto (per renderlo definitivo, incollalo alla riga 20 di `app.py`):")
+        st.markdown("Puoi testare al volo un nuovo link Google Fogli incollandolo qui sotto:")
         
         nuovo_link = st.text_input("Link Google Fogli (Chiunque abbia il link):", value=st.session_state.custom_gsheet_url)
         if st.button("💾 Applica Link & Sincronizza Ora", use_container_width=True):
@@ -1343,9 +1349,9 @@ elif st.session_state.pagina_impostazioni:
         st.subheader("📊 Stato Sincronizzazione Cloud")
         id_26 = estrai_id_google_sheet(st.session_state.custom_gsheet_url or LINK_GOOGLE_FOGLI_26_27)
         if id_26:
-            st.success(f"**Google Fogli 2026-2027**: CONNESSO 🟢\n* ID Documento: `{id_26[:12]}...`")
+            st.success("Google Fogli 2026-2027: CONNESSO 🟢")
         else:
-            st.warning("**Google Fogli 2026-2027**: NON CONFIGURATO ⚠️\n* Incolla il link alla riga 20 di `app.py`")
+            st.warning("Google Fogli 2026-2027: NON CONFIGURATO ⚠️")
 
 st.sidebar.markdown(
     """
