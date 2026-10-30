@@ -94,7 +94,7 @@ st.markdown("""
     .stTabs [data-baseweb="tab"]:hover { color: #d0d0d0; }
     .stTabs [aria-selected="true"] { color: #00cc66 !important; border-bottom-color: #00cc66 !important; }
     
-    .stButton>button { 
+    .stButton>button, div[data-testid="stFormSubmitButton"]>button { 
         border-radius: 12px; 
         background: rgba(0, 204, 102, 0.15); 
         backdrop-filter: blur(8px);
@@ -105,7 +105,7 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(0,204,102, 0.1);
         transition: all 0.3s ease;
     }
-    .stButton>button:hover { 
+    .stButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover { 
         background: rgba(0, 204, 102, 0.9); 
         color: white;
         box-shadow: 0 6px 20px rgba(0,204,102, 0.4);
@@ -166,6 +166,38 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ==========================================
+# 🔒 0. SISTEMA DI SICUREZZA E LOGIN
+# ==========================================
+if 'autenticato' not in st.session_state:
+    st.session_state.autenticato = False
+
+if not st.session_state.autenticato:
+    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    with col_l2:
+        st.markdown("""
+        <div class="glass-box" style="text-align: center; margin-top: 12vh; border-top: 4px solid #00cc66;">
+            <h1 style="margin:0; font-size: 3em; -webkit-text-fill-color: initial;">🔒</h1>
+            <h2 style="color: #fff; margin-top: 10px;">Accesso Riservato</h2>
+            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 0;">Inserisci la password per sbloccare la Dashboard Betting.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("login_form"):
+            pwd_inserita = st.text_input("Password", type="password", label_visibility="collapsed", placeholder="Inserisci la password...")
+            submit_login = st.form_submit_button("🔓 Sblocca Dashboard", use_container_width=True)
+            
+            if submit_login:
+                if pwd_inserita == "Mamma&Papa":
+                    st.session_state.autenticato = True
+                    st.rerun()
+                else:
+                    st.error("❌ Password errata. Accesso negato.")
+    st.stop()
+
+# ==========================================
+# 2. FUNZIONI DI CARICAMENTO E CALCOLO
+# ==========================================
 def estrai_id_google_sheet(url):
     if not url or "INCOLLA_QUI" in url:
         return None
@@ -197,7 +229,6 @@ def load_data(stagione, custom_url=""):
     modalita_fonte = ""
     errore_dettaglio = ""
     
-    # 1. Tentativo di caricamento da Google Fogli (Cloud)
     if sheet_id:
         try:
             export_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -211,7 +242,6 @@ def load_data(stagione, custom_url=""):
         except Exception as e:
             errore_dettaglio = f"Errore tecnico durante la lettura del foglio: {str(e)}"
 
-    # 2. Fallback automatico su file Excel locale
     if xls is None:
         local_path = f"Statistiche Campionati {stagione}.xlsx"
         if os.path.exists(local_path):
@@ -380,6 +410,9 @@ def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00cc66
     </div>
     """
 
+# ==========================================
+# 3. GESTIONE INTERFACCIA E SIDEBAR
+# ==========================================
 if 'pagina_impostazioni' not in st.session_state:
     st.session_state.pagina_impostazioni = False
 if 'custom_gsheet_url' not in st.session_state:
@@ -1352,6 +1385,11 @@ elif st.session_state.pagina_impostazioni:
             st.success("Google Fogli 2026-2027: CONNESSO 🟢")
         else:
             st.warning("Google Fogli 2026-2027: NON CONFIGURATO ⚠️")
+            
+        st.markdown("---")
+        if st.button("🔒 Blocca Sessione (Logout)", use_container_width=True):
+            st.session_state.autenticato = False
+            st.rerun()
 
 st.sidebar.markdown(
     """
