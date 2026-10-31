@@ -504,7 +504,6 @@ if not st.session_state.pagina_impostazioni:
     label_campionato = st.sidebar.selectbox("🏆 Seleziona il Campionato:", list(opzioni_campionato.keys()))
     campionato_scelto = opzioni_campionato[label_campionato]
     
-    # Badge visivo con vera bandiera grafica nella sidebar (visibile anche su Windows)
     flag_sidebar = ottieni_bandiera_html(campionato_scelto, width=20)
     st.sidebar.markdown(
         f"<div style='margin-top:-8px; margin-bottom:10px; font-size:0.85em; color:#ccc;'>{flag_sidebar} Nazione attiva: <b>{campionato_scelto}</b></div>",
@@ -896,7 +895,7 @@ if not st.session_state.pagina_impostazioni:
                     def genera_card_portiere(squadra, stemma_html, parate, tiri_subiti, ruolo):
                         if parate >= 3.6:
                             col_badge = "#00cc66"
-                            alert = "🔥 ALTO ASSEDIO: Ottimo per OVER Parate Portiere"
+                            alert = "🔥 ALTO ASSEDIO: Ottimo per OVER Parate Portiere (almeno 4)"
                         elif parate <= 2.2:
                             col_badge = "#ff4b4b"
                             alert = "🧊 BASSO ASSEDIO: Rischio Under Parate"
@@ -1141,7 +1140,7 @@ if not st.session_state.pagina_impostazioni:
                         f_en = ottieni_bandiera_html('Premier League', 22)
                         f_es = ottieni_bandiera_html('La Liga', 22)
                         st.markdown(f"### 🌍 Scanner Universale Value Bet ({f_it}Serie A &nbsp;•&nbsp; {f_en}Premier League &nbsp;•&nbsp; {f_es}La Liga)", unsafe_allow_html=True)
-                        st.markdown("<p style='color:#a0a0a0;'>Analizza simultaneamente tutte le partite del foglio <b>'Palinsesto'</b> da Google Fogli con <b>Filtro Anti-Azzardo 1X2</b>.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='color:#a0a0a0;'>Analizza simultaneamente tutte le partite del foglio <b>'Palinsesto'</b> calcolando il <b>Target Reale di Cassa (Intero Superiore)</b> e il peso della quota.</p>", unsafe_allow_html=True)
                         
                         col_sl1, col_sl2 = st.columns([1, 1])
                         with col_sl1:
@@ -1313,11 +1312,17 @@ if not st.session_state.pagina_impostazioni:
                                             'Efficienza': edge_gg
                                         })
 
+                                # =================================================================
+                                # FUNZIONI STATISTICHE CON "TARGET REALE DI CASSA" (INTERO SUPERIORE)
+                                # =================================================================
                                 def aggiungi_mercato_statistico(nome_mercato, col_linea, col_quota, val_casa, val_trasf, col_c, col_t, icona):
                                     linea = pd.to_numeric(row.get(col_linea, 0), errors='coerce')
                                     quota = pd.to_numeric(row.get(col_quota, 0), errors='coerce')
                                     
                                     if not pd.isna(linea) and linea > 0 and not pd.isna(quota) and quota > 1.0:
+                                        # Target intero reale per vincere la scommessa (es. Linea 9.5 -> Servono 10)
+                                        target_cassa = int(math.floor(linea)) + 1
+                                        
                                         proiezione_attacchi = val_casa + val_trasf
                                         sub_c, _ = stima_stat_subita(df_lega_match, dati_c, 'Casa', col_t, col_c)
                                         sub_t, _ = stima_stat_subita(df_lega_match, dati_t, 'Trasferta', col_c, col_t)
@@ -1335,9 +1340,12 @@ if not st.session_state.pagina_impostazioni:
                                             stato_dif = "⚪ Difese Medie"
                                             spia = "⚖️ Ritmo Regolare"
 
-                                        scarto = proiezione_incrociata - linea
-                                        eff = (scarto / linea) * 100 
-                                        if eff > 0:
+                                        # SBARRAMENTO: La proiezione deve superare il numero intero necessario per andare in cassa
+                                        scarto_reale = proiezione_incrociata - target_cassa
+                                        moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
+                                        eff = ((scarto_reale / target_cassa) * 100) * moltiplicatore_quota
+                                        
+                                        if scarto_reale > 0 and eff > 0:
                                             risultati_value.append({
                                                 'Tipo_Mercato': 'STAT',
                                                 'Campionato': nome_lega_match,
@@ -1350,7 +1358,7 @@ if not st.session_state.pagina_impostazioni:
                                                 'Stato_Difesa': stato_dif,
                                                 'Proiezione_Finale': f"{proiezione_incrociata:.2f}",
                                                 'Spia_Tattica': spia,
-                                                'Linea Eplay24': str(linea),
+                                                'Linea Eplay24': f"{linea} (Servono: {target_cassa})",
                                                 'Quota Eplay24': f"{quota:.2f}",
                                                 'Efficienza': eff
                                             })
@@ -1360,6 +1368,9 @@ if not st.session_state.pagina_impostazioni:
                                     quota = pd.to_numeric(row.get(col_quota, 0), errors='coerce')
                                     
                                     if not pd.isna(linea) and linea > 0 and not pd.isna(quota) and quota > 1.0:
+                                        # Target intero reale per vincere la scommessa (es. Linea 3.5 -> Servono 4)
+                                        target_cassa = int(math.floor(linea)) + 1
+                                        
                                         subiti_avv, stato_dif = stima_stat_subita(df_lega_match, dati_avv, ruolo_avv, col_att, col_dif)
                                         proiezione_incrociata = (proiezione_sq + subiti_avv) / 2.0 if subiti_avv > 0 else proiezione_sq
                                         
@@ -1370,9 +1381,12 @@ if not st.session_state.pagina_impostazioni:
                                         else:
                                             spia = "⚖️ Copione Regolare"
 
-                                        scarto = proiezione_incrociata - linea
-                                        eff = (scarto / linea) * 100 
-                                        if eff > 0:
+                                        # SBARRAMENTO: La proiezione deve superare il numero intero necessario per andare in cassa
+                                        scarto_reale = proiezione_incrociata - target_cassa
+                                        moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
+                                        eff = ((scarto_reale / target_cassa) * 100) * moltiplicatore_quota
+                                        
+                                        if scarto_reale > 0 and eff > 0:
                                             risultati_value.append({
                                                 'Tipo_Mercato': 'STAT',
                                                 'Campionato': nome_lega_match,
@@ -1385,7 +1399,7 @@ if not st.session_state.pagina_impostazioni:
                                                 'Stato_Difesa': stato_dif,
                                                 'Proiezione_Finale': f"{proiezione_incrociata:.2f}",
                                                 'Spia_Tattica': spia,
-                                                'Linea Eplay24': str(linea),
+                                                'Linea Eplay24': f"{linea} (Servono: {target_cassa})",
                                                 'Quota Eplay24': f"{quota:.2f}",
                                                 'Efficienza': eff
                                             })
@@ -1420,9 +1434,9 @@ if not st.session_state.pagina_impostazioni:
                                 df_value = df_value.sort_values(by='Efficienza', ascending=False)
                                 
                                 if df_value.empty:
-                                    st.warning(f"😔 Nessuna giocata supera il **{filtro_eff}%** di Efficienza per i filtri selezionati.")
+                                    st.warning(f"😔 Nessuna giocata supera il **{filtro_eff}%** di Efficienza sul Target Reale di Cassa.")
                                 else:
-                                    st.success(f"✅ Trovate **{len(df_value)}** Giocate Premium per le Singole!")
+                                    st.success(f"✅ Trovate **{len(df_value)}** Giocate Premium validate sul Target Reale di Cassa!")
                                     
                                     counts = df_value['Partita'].value_counts()
                                     partite_ripetute = counts[counts > 1].index.tolist()
@@ -1462,11 +1476,11 @@ if not st.session_state.pagina_impostazioni:
                                                 badge = "🟡 BUONA (1X2)"
                                                 puntata = "1 Unità (Rischio Basso)"
                                         else:
-                                            if eff >= 22.0:
+                                            if eff >= 20.0:
                                                 col_bordo = "#ff4b4b"
                                                 badge = "🔥 SUPER VALUE"
                                                 puntata = "3 Unità (Rischio Alto)"
-                                            elif eff >= 13.0:
+                                            elif eff >= 11.0:
                                                 col_bordo = "#00cc66"
                                                 badge = "🟢 OTTIMA"
                                                 puntata = "2 Unità (Rischio Medio)"
@@ -1481,7 +1495,7 @@ if not st.session_state.pagina_impostazioni:
                                                 <span style="font-size: 0.72em; color: #ddd; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{lega_badge_html}</span>
                                                 <h4 style="margin: 6px 0 2px 0; color: #fff; font-size: 1.05em; font-weight: 700;">{nome_match_html}</h4>
                                                 <p style="margin: 2px 0 2px 0; color: #00cc66; font-weight: 700; font-size: 0.95em;">{bet['Mercato Consigliato']}</p>
-                                                <p style="margin: 0; font-size: 0.75em; color: #aaa;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b>{bet['Linea Eplay24']}</b></p>
+                                                <p style="margin: 0; font-size: 0.75em; color: #aaa;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b style="color:#fff;">{bet['Linea Eplay24']}</b></p>
                                             </div>
                                             <div style="flex: 1.6; text-align: center; border-left: 1px solid rgba(255,255,255,0.1); padding: 0 10px;">
                                                 <p style="margin: 0; font-size: 0.68em; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Analisi & Game State</p>
