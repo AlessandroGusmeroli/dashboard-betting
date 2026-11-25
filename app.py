@@ -205,7 +205,6 @@ MAPPA_BANDIERE_URL = {
     'Premier League': 'https://flagcdn.com/w40/gb-eng.png'
 }
 
-# ID Ufficiali API-Sports (PNG trasparenti ad alta affidabilità, nessun blocco Wikipedia)
 STEMMI_SERIE_A_ID = [
     ('internazionale', 505), ('inter', 505),
     ('hellas verona', 504), ('verona', 504),
@@ -231,7 +230,6 @@ def ottieni_src_stemma(squadra, campionato):
     lega_pulita = campionato.replace('🇮🇹 ', '').replace('🏴󠁧󠁢󠁥󠁮󠁧󠁿 ', '').replace('🇪🇸 ', '').strip()
     if lega_pulita != 'Serie A':
         return ""
-    # 1. Controlla se esiste il file locale nella cartella Stemmi
     percorso_locale = f"Stemmi/{squadra}.png"
     if os.path.exists(percorso_locale):
         try:
@@ -240,7 +238,6 @@ def ottieni_src_stemma(squadra, campionato):
             return f"data:image/png;base64,{b64}"
         except Exception:
             pass
-    # 2. Ricerca intelligente su CDN API-Sports (funziona anche con Hellas Verona, FC Inter, ecc.)
     sq_norm = str(squadra).lower().strip()
     for chiave, team_id in STEMMI_SERIE_A_ID:
         if chiave == sq_norm or chiave in sq_norm:
@@ -424,6 +421,20 @@ def stima_stat_subita(df_lega, dati_difesa, ruolo_difesa, col_stat_attacco, col_
         stato = "⚪ Difesa Media"
 
     return float(subiti_stimati), stato
+
+def calcola_linea_statistica(proiezione, cuscinetto_base, stato_difesa=""):
+    """Calcola la linea .5 consigliata garantendo un cuscinetto reale sopra il target intero di cassa."""
+    if proiezione <= 0:
+        return "N/D", 0, 0.0, "#888"
+    is_muro = ("Solida" in stato_difesa) or ("Chiuse" in stato_difesa)
+    cuscinetto = cuscinetto_base * 1.35 if is_muro else cuscinetto_base
+    target_cassa = int(math.floor(proiezione - cuscinetto))
+    if target_cassa < 1:
+        return "NO BET (Linea bassa)", 0, 0.0, "#888"
+    linea_consigliata = target_cassa - 0.5
+    margine = proiezione - target_cassa
+    colore = "#ffb703" if is_muro else ("#00cc66" if "Concede" in stato_difesa or "Permessive" in stato_difesa else "#38bdf8")
+    return f"OVER {linea_consigliata:.1f}", target_cassa, margine, colore
 
 def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00cc66"):
     if perc_over > 0:
@@ -870,6 +881,115 @@ if not st.session_state.pagina_impostazioni:
                         st.error(f"🔥 **TREND OVER ({xg_totali_match:.2f} xG Totali):** Le difese concedono e gli attacchi producono. Favorito **Over 2.5** o **Multigol 2-5 Totale**.")
                     else:
                         st.warning(f"⚖️ **RITMO MEDIO ({xg_totali_match:.2f} xG Totali):** Match equilibrato, ottimo per **Multigol 2-4 Totale**.")
+
+                    # =========================================================================
+                    # CALCOLO CENTRALIZZATO PROIEZIONI INCROCIATE (TIRI, TIRI PORTA, CORNER)
+                    # =========================================================================
+                    sub_tt_2, stato_tt_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri totali Casa', 'Tiri totali Trasferta')
+                    sub_tt_1, stato_tt_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri totali Trasferta', 'Tiri totali Casa')
+                    proj_tt_1 = (tt_1 + sub_tt_2) / 2.0 if sub_tt_2 > 0 else tt_1
+                    proj_tt_2 = (tt_2 + sub_tt_1) / 2.0 if sub_tt_1 > 0 else tt_2
+
+                    sub_tp_2, stato_tp_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri in porta Casa', 'Tiri in porta Trasferta')
+                    sub_tp_1, stato_tp_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri in porta Trasferta', 'Tiri in porta Casa')
+                    proj_tp_1 = (tp_1 + sub_tp_2) / 2.0 if sub_tp_2 > 0 else tp_1
+                    proj_tp_2 = (tp_2 + sub_tp_1) / 2.0 if sub_tp_1 > 0 else tp_2
+
+                    sub_cor_2, stato_cor_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Corner Casa', 'Corner Trasferta')
+                    sub_cor_1, stato_cor_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Corner Trasferta', 'Corner Casa')
+                    proj_cor_1 = (cor_1 + sub_cor_2) / 2.0 if sub_cor_2 > 0 else cor_1
+                    proj_cor_2 = (cor_2 + sub_cor_1) / 2.0 if sub_cor_1 > 0 else cor_2
+
+                    # =========================================================================
+                    # 📏 NUOVA SEZIONE: LINEE STATISTICHE PREVISTE (SQUADRA & TOTALE MATCH)
+                    # =========================================================================
+                    st.markdown("<h4 style='margin-top: 30px;'>📏 Linee Statistiche Previste (Incrocio Fatti vs Concessi Avversario)</h4>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Calcola una possibile linea statistica sicura (Target Reale di Cassa + cuscinetto) incrociando la media della squadra con quanto concede la difesa avversaria.</p>", unsafe_allow_html=True)
+
+                    def genera_riga_linea_html(icona, etichetta, media_fatti, subiti_avv, stato_dif, proj_reale, cuscinetto):
+                        linea_txt, target_int, marg, col_badge = calcola_linea_statistica(proj_reale, cuscinetto, stato_dif)
+                        extra_target = f"Servono <b>{target_int}</b> (+{marg:.2f})" if target_int > 0 else "Dati bassi"
+                        return f"""
+                        <div style="background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                                <div>
+                                    <span style="font-size:0.85em; font-weight:700; color:#fff;">{icona} {etichetta}</span>
+                                    <div style="font-size:0.74em; color:#aaa; margin-top:2px;">
+                                        Media: <b style="color:#ddd;">{media_fatti:.2f}</b> &nbsp;|&nbsp; Concessi Avv: <b style="color:#ddd;">{subiti_avv:.2f}</b> <span style="font-size:0.95em;">({stato_dif})</span>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="background: rgba(255,255,255,0.06); border: 1px solid {col_badge}; color: {col_badge}; padding: 3px 9px; border-radius: 6px; font-family:'JetBrains Mono', monospace; font-weight:800; font-size:0.92em;">{linea_txt}</span>
+                                    <div style="font-size:0.72em; color:#aaa; margin-top:3px; font-family:'JetBrains Mono', monospace;">
+                                        Proiez: <b style="color:#fff;">{proj_reale:.2f}</b> • {extra_target}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        """
+
+                    col_lin1, col_lin2 = st.columns(2)
+                    with col_lin1:
+                        r1_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_1, sub_tt_2, stato_tt_2, proj_tt_1, 1.1)
+                        r1_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_1, sub_tp_2, stato_tp_2, proj_tp_1, 0.6)
+                        r1_cor = genera_riga_linea_html("🚩", "Corner", cor_1, sub_cor_2, stato_cor_2, proj_cor_1, 0.7)
+                        st.markdown(f"""
+                        <div class="glass-box" style="border-top: 3px solid #00cc66; padding: 16px; margin-bottom: 14px;">
+                            <h4 style="margin:0 0 12px 0; color:#00cc66;">🏠 Linee {stemma_sq1}{squadra_1} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_2}</span></h4>
+                            {r1_tt}
+                            {r1_tp}
+                            {r1_cor}
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with col_lin2:
+                        r2_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_2, sub_tt_1, stato_tt_1, proj_tt_2, 1.1)
+                        r2_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_2, sub_tp_1, stato_tp_1, proj_tp_2, 0.6)
+                        r2_cor = genera_riga_linea_html("🚩", "Corner", cor_2, sub_cor_1, stato_cor_1, proj_cor_2, 0.7)
+                        st.markdown(f"""
+                        <div class="glass-box" style="border-top: 3px solid #ff4b4b; padding: 16px; margin-bottom: 14px;">
+                            <h4 style="margin:0 0 12px 0; color:#ff4b4b;">✈️ Linee {stemma_sq2}{squadra_2} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_1}</span></h4>
+                            {r2_tt}
+                            {r2_tp}
+                            {r2_cor}
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # BARRA RIEPILOGATIVA TOTALE MATCH (SOMMA PROIEZIONI INCROCIATE)
+                    proj_tot_tt = proj_tt_1 + proj_tt_2
+                    proj_tot_tp = proj_tp_1 + proj_tp_2
+                    proj_tot_cor = proj_cor_1 + proj_cor_2
+
+                    stato_tot_tt = "🔴 Difese Chiuse" if ("Solida" in stato_tt_1 and "Solida" in stato_tt_2) else ("🟢 Difese Permessive" if ("Concede" in stato_tt_1 and "Concede" in stato_tt_2) else "⚪ Difese Medie")
+                    stato_tot_tp = "🔴 Difese Chiuse" if ("Solida" in stato_tp_1 and "Solida" in stato_tp_2) else ("🟢 Difese Permessive" if ("Concede" in stato_tp_1 and "Concede" in stato_tp_2) else "⚪ Difese Medie")
+                    stato_tot_cor = "🔴 Difese Chiuse" if ("Solida" in stato_cor_1 and "Solida" in stato_cor_2) else ("🟢 Difese Permessive" if ("Concede" in stato_cor_1 and "Concede" in stato_cor_2) else "⚪ Difese Medie")
+
+                    lt_tt, tgt_tt, m_tt, col_l_tt = calcola_linea_statistica(proj_tot_tt, 1.6, stato_tot_tt)
+                    lt_tp, tgt_tp, m_tp, col_l_tp = calcola_linea_statistica(proj_tot_tp, 0.9, stato_tot_tp)
+                    lt_cor, tgt_cor, m_cor, col_l_cor = calcola_linea_statistica(proj_tot_cor, 1.0, stato_tot_cor)
+
+                    st.markdown(f"""
+                    <div class="glass-box" style="padding: 16px; border: 1px solid rgba(56,189,248,0.25);">
+                        <p style="margin:0 0 10px 0; font-size:0.78em; color:#aaa; text-transform:uppercase; letter-spacing:1px;">🌐 Proiezione Linee Totali Match (Casa + Ospite)</p>
+                        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tt};">
+                                <span style="font-size:0.8em; color:#aaa;">👟 TIRI TOTALI MATCH</span><br>
+                                <b style="font-size:1.15em; color:{col_l_tt}; font-family:'JetBrains Mono', monospace;">{lt_tt}</b>
+                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tt:.2f}</b> (Servono {tgt_tt})</span>
+                            </div>
+                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tp};">
+                                <span style="font-size:0.8em; color:#aaa;">🥅 TIRI IN PORTA MATCH</span><br>
+                                <b style="font-size:1.15em; color:{col_l_tp}; font-family:'JetBrains Mono', monospace;">{lt_tp}</b>
+                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tp:.2f}</b> (Servono {tgt_tp})</span>
+                            </div>
+                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_cor};">
+                                <span style="font-size:0.8em; color:#aaa;">🚩 CORNER TOTALI MATCH</span><br>
+                                <b style="font-size:1.15em; color:{col_l_cor}; font-family:'JetBrains Mono', monospace;">{lt_cor}</b>
+                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_cor:.2f}</b> (Servono {tgt_cor})</span>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                         
                     st.markdown("<h4 style='margin-top: 30px;'>🧤 Focus Portieri & Indice di Assedio (Scommesse Speciali)</h4>", unsafe_allow_html=True)
                     st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Calcola le parate attese incrociando i tiri in porta dell'avversario con la vulnerabilità difensiva della squadra.</p>", unsafe_allow_html=True)
@@ -913,12 +1033,7 @@ if not st.session_state.pagina_impostazioni:
                     st.markdown("<h4 style='margin-top: 30px;'>🥊 Verdetto IA: Testa a Testa (1X2) Tiri, Corner & Falli</h4>", unsafe_allow_html=True)
                     st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Simulazione dei 4 duelli statistici diretti calibrata con vulnerabilità difensiva e indice di pressione tattica (Game State).</p>", unsafe_allow_html=True)
 
-                    sub_tt_2, _ = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri totali Casa', 'Tiri totali Trasferta')
-                    sub_tt_1, _ = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri totali Trasferta', 'Tiri totali Casa')
-                    proj_tt_1 = (tt_1 + sub_tt_2) / 2.0 if sub_tt_2 > 0 else tt_1
-                    proj_tt_2 = (tt_2 + sub_tt_1) / 2.0 if sub_tt_1 > 0 else tt_2
                     diff_tt = proj_tt_1 - proj_tt_2
-
                     if diff_tt >= 3.5:
                         verd_tt = f"1 TIRI TOTALI ({squadra_1})"
                         col_tt = "#00cc66"
@@ -940,12 +1055,7 @@ if not st.session_state.pagina_impostazioni:
                         col_tt = "#ffb703"
                         cons_tt = f"Scarto ridotto (<b>{diff_tt:+.2f} tiri</b>). Meglio puntare sulla linea Over Tiri."
 
-                    sub_tp_2, _ = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri in porta Casa', 'Tiri in porta Trasferta')
-                    sub_tp_1, _ = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri in porta Trasferta', 'Tiri in porta Casa')
-                    proj_tp_1 = (tp_1 + sub_tp_2) / 2.0 if sub_tp_2 > 0 else tp_1
-                    proj_tp_2 = (tp_2 + sub_tp_1) / 2.0 if sub_tp_1 > 0 else tp_2
                     diff_tp = proj_tp_1 - proj_tp_2
-
                     if diff_tp >= 1.5:
                         verd_tp = f"1 TIRI IN PORTA ({squadra_1})"
                         col_tp = "#00cc66"
@@ -967,12 +1077,7 @@ if not st.session_state.pagina_impostazioni:
                         col_tp = "#ffb703"
                         cons_tp = f"Scarto minimo nello specchio (<b>{diff_tp:+.2f}</b>). Duello da tripla."
 
-                    sub_cor_2, _ = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Corner Casa', 'Corner Trasferta')
-                    sub_cor_1, _ = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Corner Trasferta', 'Corner Casa')
-                    proj_cor_1 = (cor_1 + sub_cor_2) / 2.0 if sub_cor_2 > 0 else cor_1
-                    proj_cor_2 = (cor_2 + sub_cor_1) / 2.0 if sub_cor_1 > 0 else cor_2
                     diff_cor = proj_cor_1 - proj_cor_2
-
                     if diff_cor >= 1.6:
                         verd_cor = f"1 CORNER ({squadra_1})"
                         col_cor = "#00cc66"
@@ -1326,9 +1431,6 @@ if not st.session_state.pagina_impostazioni:
                                             'Score_Scelta': (n_sem * 15) + (edge_gg * 1.6)
                                         })
 
-                                # =========================================================================
-                                # FUNZIONI STATISTICHE CON "SEMAFORI SALVA-CASSA" E PENALITÀ DIFESA SOLIDA
-                                # =========================================================================
                                 def aggiungi_mercato_statistico(nome_mercato, col_linea, col_quota, val_casa, val_trasf, col_c, col_t, icona, soglia_cuscinetto):
                                     linea = pd.to_numeric(row.get(col_linea, 0), errors='coerce')
                                     quota = pd.to_numeric(row.get(col_quota, 0), errors='coerce')
@@ -1359,7 +1461,6 @@ if not st.session_state.pagina_impostazioni:
                                         moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
                                         eff = ((scarto_reale / target_cassa) * 100) * moltiplicatore_quota
                                         
-                                        # PENALITÀ SALVA-CASSA SE LE DIFESE SONO CHIUSE
                                         if contro_muro:
                                             eff = eff * 0.65
                                             
@@ -1414,7 +1515,6 @@ if not st.session_state.pagina_impostazioni:
                                         moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
                                         eff = ((scarto_reale / target_cassa) * 100) * moltiplicatore_quota
                                         
-                                        # PENALITÀ SALVA-CASSA CONTRO DIFESA SOLIDA (Caso Udinese-Roma)
                                         if contro_muro:
                                             eff = eff * 0.65
                                             
@@ -1477,7 +1577,6 @@ if not st.session_state.pagina_impostazioni:
                                     
                                 df_value = df_value[df_value['Efficienza'] >= filtro_eff]
                                 
-                                # Identifica la "1ª Scelta Assoluta" per ogni singola partita in base allo Score_Scelta (Semafori + Efficienza)
                                 if not df_value.empty:
                                     df_value = df_value.sort_values(by=['Score_Scelta', 'Efficienza'], ascending=[False, False])
                                     idx_prime_scelte = df_value.groupby('Partita', sort=False).head(1).index
@@ -1523,7 +1622,6 @@ if not st.session_state.pagina_impostazioni:
                                         
                                         tag_scelta = "<span style='background:rgba(0,204,102,0.2); color:#00cc66; border:1px solid rgba(0,204,102,0.4); padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px; font-weight:700;'>👑 1ª SCELTA MATCH</span>" if is_top_match else "<span style='background:rgba(255,255,255,0.06); color:#999; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px;'>Alternativa</span>"
 
-                                        # BLOCCO SALVA-CASSA: Mai dare 3 Unità se è contro una Difesa Solida o ha meno di 3 semafori verdi
                                         if contro_muro:
                                             col_bordo = "#ffb703"
                                             badge = "⚠️ CONTRO DIFESA SOLIDA"
