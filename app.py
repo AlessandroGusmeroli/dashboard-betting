@@ -383,6 +383,146 @@ def calcola_mercati_betting(team, df_part, modalita="globale", ruolo="casa"):
     
     return tot_partite, perc_over, perc_goal
 
+# =========================================================================
+# 🔬 MOTORE AVANZATO: SPRECONI/CINICI + QUALITÀ TIRO + FORMA 5G + GAME STATE
+# =========================================================================
+def analizza_dna_squadra(team, df_part, xg_att, tt_att, xg_stag_medio):
+    """Calcola Momentum ultime 5, Cinismo (Gol Reali vs xG) e Qualità del Tiro (xG/Tiro)."""
+    res = {
+        'n_part': 0, 'n_5': 0, 'gf_5': None, 'gs_5': None, 'punti_5': None,
+        'momentum_label': '➡️ N/D',
+        'delta_cinismo': 0.0, 'stato_cinismo': '⚖️ In Linea', 'mult_cin_stat': 1.00,
+        'xg_per_tiro': 0.11, 'stato_tiro': '⚖️ Mix Bilanciato',
+        'mult_cor_tiro': 1.00, 'mult_par_tiro': 1.00
+    }
+    
+    # 1. Qualità del Tiro (xG / Tiro)
+    if tt_att and tt_att > 0:
+        xgt = float(xg_att) / float(tt_att)
+        res['xg_per_tiro'] = xgt
+        if xgt < 0.095 and tt_att >= 11.0:
+            res['stato_tiro'] = '🚀 Da Fuori (+Corner/Parate)'
+            res['mult_cor_tiro'] = 1.06
+            res['mult_par_tiro'] = 1.08
+        elif xgt > 0.135:
+            res['stato_tiro'] = '🎯 In Area (-Corner, +Gol)'
+            res['mult_cor_tiro'] = 0.94
+            res['mult_par_tiro'] = 0.95
+            
+    # 2. Analisi da foglio Partite (Cinismo + Forma 5G)
+    if df_part is not None and not df_part.empty and 'Squadra Casa' in df_part.columns and 'Squadra Trasferta' in df_part.columns:
+        df_t = df_part[(df_part['Squadra Casa'] == team) | (df_part['Squadra Trasferta'] == team)].copy()
+        if not df_t.empty:
+            if 'Data' in df_t.columns:
+                df_t['Data'] = pd.to_datetime(df_t['Data'], errors='coerce')
+                df_t = df_t.sort_values(by='Data')
+            gf_all, gs_all, pts_all = [], [], []
+            for _, r in df_t.iterrows():
+                try:
+                    gf = float(r.get('Gol Casa')) if r.get('Squadra Casa') == team else float(r.get('Gol Trasferta'))
+                    gs = float(r.get('Gol Trasferta')) if r.get('Squadra Casa') == team else float(r.get('Gol Casa'))
+                    if math.isnan(gf) or math.isnan(gs):
+                        continue
+                    gf_all.append(gf)
+                    gs_all.append(gs)
+                    pts_all.append(3 if gf > gs else (1 if gf == gs else 0))
+                except Exception:
+                    continue
+                    
+            n_tot = len(gf_all)
+            res['n_part'] = n_tot
+            if n_tot >= 4 and xg_stag_medio > 0:
+                media_gf_reale = sum(gf_all) / n_tot
+                delta = media_gf_reale - xg_stag_medio
+                res['delta_cinismo'] = delta
+                if delta <= -0.22:
+                    res['stato_cinismo'] = f'🔥 Sprecona ({delta:+.2f} vs xG)'
+                    res['mult_cin_stat'] = 1.06
+                elif delta >= 0.22:
+                    res['stato_cinismo'] = f'🎯 Iper-Cinica ({delta:+.2f} vs xG)'
+                    res['mult_cin_stat'] = 0.95
+                else:
+                    res['stato_cinismo'] = f'⚖️ In Linea ({delta:+.2f} vs xG)'
+                    
+            if n_tot >= 3:
+                ult5_gf = gf_all[-5:]
+                ult5_gs = gs_all[-5:]
+                ult5_pts = pts_all[-5:]
+                res['n_5'] = len(ult5_gf)
+                res['gf_5'] = sum(ult5_gf) / len(ult5_gf)
+                res['gs_5'] = sum(ult5_gs) / len(ult5_gs)
+                p5 = sum(ult5_pts)
+                res['punti_5'] = p5
+                # Normalizza su 5 gare se ce ne sono 3 o 4
+                p5_norm = (p5 / len(ult5_pts)) * 5.0
+                if p5_norm >= 10.5:
+                    res['momentum_label'] = f'📈 Hot ({p5} pt/5G)'
+                elif p5_norm <= 4.5:
+                    res['momentum_label'] = f'📉 Cold ({p5} pt/5G)'
+                else:
+                    res['momentum_label'] = f'➡️ Stabile ({p5} pt/5G)'
+    return res
+
+def calcola_game_state(p_win, p_lose):
+    """Restituisce moltiplicatore volumi e badge in base alla probabilità 1X2 di Poisson."""
+    if p_win >= 64.0:
+        return 0.92, "🧊 Rischio Gestione (-8%)"
+    elif 44.0 <= p_win <= 58.0:
+        return 1.04, "🔥 Spinta Costante (+4%)"
+    elif 48.0 <= p_lose < 64.0:
+        return 1.04, "⚡ Spinta Rincorsa (+4%)"
+    return 1.00, "⚖️ Game State Neutro"
+
+def calcola_poisson_match(xg_base_1, xg_base_2, tp_1, tp_2, media_tp_1, media_tp_2, dna_1, dna_2, coppe_1=False, coppe_2=False):
+    """Calcola xG calibrati con Tiri in Porta, Momentum Ultime 5 e Affaticamento Coppe + distribuzione 1X2."""
+    fattore_tp_1 = max(0.85, min(1.18, tp_1 / media_tp_1)) if media_tp_1 > 0 else 1.0
+    fattore_tp_2 = max(0.85, min(1.18, tp_2 / media_tp_2)) if media_tp_2 > 0 else 1.0
+
+    gol_base_1 = ((xg_base_1 * 0.85) + (xg_base_1 * fattore_tp_1 * 0.15)) * 1.06
+    gol_base_2 = ((xg_base_2 * 0.85) + (xg_base_2 * fattore_tp_2 * 0.15)) * 0.94
+
+    # Integrazione Momentum Ultime 5 (82% stagionale + 18% forma recente, clamped ±15%)
+    gol_sq1 = gol_base_1
+    gol_sq2 = gol_base_2
+    if dna_1['n_5'] >= 3 and dna_2['n_5'] >= 3:
+        rec_1 = (dna_1['gf_5'] + dna_2['gs_5']) / 2.0
+        rec_2 = (dna_2['gf_5'] + dna_1['gs_5']) / 2.0
+        gol_blend_1 = (gol_base_1 * 0.82) + (rec_1 * 0.18)
+        gol_blend_2 = (gol_base_2 * 0.82) + (rec_2 * 0.18)
+        gol_sq1 = max(gol_base_1 * 0.85, min(gol_base_1 * 1.15, gol_blend_1))
+        gol_sq2 = max(gol_base_2 * 0.85, min(gol_base_2 * 1.15, gol_blend_2))
+
+    # Integrazione Affaticamento Coppe Europee (-10% attacco stanco, +5% vulnerabilità difensiva)
+    if coppe_1:
+        gol_sq1 *= 0.90
+        gol_sq2 *= 1.05
+    if coppe_2:
+        gol_sq2 *= 0.90
+        gol_sq1 *= 1.05
+
+    l1 = max(0.1, gol_sq1)
+    l2 = max(0.1, gol_sq2)
+    probs_1 = [(math.exp(-l1) * (l1**k)) / math.factorial(k) for k in range(7)]
+    probs_2 = [(math.exp(-l2) * (l2**k)) / math.factorial(k) for k in range(7)]
+
+    p_1, p_x, p_2 = 0.0, 0.0, 0.0
+    risultati_esatti = []
+    for i in range(7):
+        for j in range(7):
+            p_ij = probs_1[i] * probs_2[j]
+            if i > j: p_1 += p_ij
+            elif i == j: p_x += p_ij
+            else: p_2 += p_ij
+            if i <= 4 and j <= 4:
+                risultati_esatti.append((f"{i}-{j}", p_ij * 100))
+
+    tot_p = p_1 + p_x + p_2
+    if tot_p > 0:
+        p_1, p_x, p_2 = (p_1 / tot_p) * 100, (p_x / tot_p) * 100, (p_2 / tot_p) * 100
+
+    risultati_esatti.sort(key=lambda x: x[1])
+    return l1, l2, p_1, p_x, p_2, risultati_esatti
+
 def stima_stat_subita(df_lega, dati_difesa, ruolo_difesa, col_stat_attacco, col_stat_difesa):
     media_attacco_lega = df_lega[col_stat_attacco].mean() if col_stat_attacco in df_lega.columns else 0
     if media_attacco_lega <= 0:
@@ -532,11 +672,16 @@ if not st.session_state.pagina_impostazioni:
             st.sidebar.divider()
             modalita_confronto = st.sidebar.checkbox("⚔️ Attiva Modalità Confronto")
             
+            coppe_casa = False
+            coppe_ospite = False
             if modalita_confronto:
                 st.sidebar.markdown("**Seleziona le squadre:**")
                 squadra_1 = st.sidebar.selectbox("🏠 Prima Squadra (Casa):", lista_squadre_pure)
                 squadra_2 = st.sidebar.selectbox("✈️ Seconda Squadra (Ospite):", lista_squadre_pure, index=1 if len(lista_squadre_pure)>1 else 0)
-                simula_reale = st.sidebar.checkbox("🏟️ Usa Dati Reali (Solo Casa vs Trasferta)")
+                simula_reale = st.sidebar.checkbox("🏟️ Usa Dati Reali (Solo Casa vs Trasferta)", value=True)
+                st.sidebar.markdown("**🇪🇺 Affaticamento Coppe (-10%):**")
+                coppe_casa = st.sidebar.checkbox(f"🇪🇺 Coppe in settimana: {squadra_1}")
+                coppe_ospite = st.sidebar.checkbox(f"🇪🇺 Coppe in settimana: {squadra_2}")
             else:
                 lista_squadre = ["Tutte le squadre"] + lista_squadre_pure
                 squadra_scelta = st.sidebar.selectbox("🔎 Seleziona la Squadra:", lista_squadre)
@@ -555,13 +700,15 @@ if not st.session_state.pagina_impostazioni:
             if modalita_confronto:
                 stemma_1_hdr = ottieni_stemma_html(squadra_1, campionato_scelto, size=42)
                 stemma_2_hdr = ottieni_stemma_html(squadra_2, campionato_scelto, size=42)
+                badge_c1 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.2); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_casa else ""
+                badge_c2 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.2); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_ospite else ""
                 col_t1, col_vs, col_t2 = st.columns([2, 1, 2])
                 with col_t1:
-                    st.markdown(f"<h2 style='text-align: right; color: #00cc66; text-shadow: 0 0 20px rgba(0,204,102,0.4);'>{stemma_1_hdr}{squadra_1}</h2>", unsafe_allow_html=True)
+                    st.markdown(f"<h2 style='text-align: right; color: #00cc66; text-shadow: 0 0 20px rgba(0,204,102,0.4);'>{stemma_1_hdr}{squadra_1}{badge_c1}</h2>", unsafe_allow_html=True)
                 with col_vs:
                     st.markdown(f"<h3 style='text-align: center; color: #777; margin-top: 8px;'>{flag_header} vs</h3>", unsafe_allow_html=True)
                 with col_t2:
-                    st.markdown(f"<h2 style='text-align: left; color: #ff4b4b; text-shadow: 0 0 20px rgba(255,75,75,0.4);'>{stemma_2_hdr}{squadra_2}</h2>", unsafe_allow_html=True)
+                    st.markdown(f"<h2 style='text-align: left; color: #ff4b4b; text-shadow: 0 0 20px rgba(255,75,75,0.4);'>{stemma_2_hdr}{squadra_2}{badge_c2}</h2>", unsafe_allow_html=True)
             else:
                 col_titolo, col_data = st.columns([3, 1])
                 with col_titolo:
@@ -667,11 +814,16 @@ if not st.session_state.pagina_impostazioni:
                 with tab_pronostici_ia:
                     mod_testo = "Dati Reali (Casa vs Trasferta)" if simula_reale else "Media Stagionale Globale"
                     st.markdown("### 🧠 Centrale Pronostici IA: 1X2, Multigol & Bussola Tattica")
-                    st.markdown(f"<p style='color:#a0a0a0; font-size:0.9em;'>Motore predittivo basato su distribuzione di Poisson, fattore campo, incrocio difensivo (xGA) e volume di tiro (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='color:#a0a0a0; font-size:0.9em;'>Motore calibrato con <b>Poisson + Forma 5G + Game State + Spreconi/Cinici + Qualità Tiro + Coppe</b> (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
+
+                    xg_stag_1 = (dati_sq1.get('xG Casa', 0) + dati_sq1.get('xG Trasferta', 0)) / 2.0
+                    xg_stag_2 = (dati_sq2.get('xG Casa', 0) + dati_sq2.get('xG Trasferta', 0)) / 2.0
 
                     if simula_reale:
-                        xg_base_1 = (dati_sq1.get('xG Casa', 1.0) + dati_sq2.get('xGA Trasferta', 1.0)) / 2.0
-                        xg_base_2 = (dati_sq2.get('xG Trasferta', 1.0) + dati_sq1.get('xGA Casa', 1.0)) / 2.0
+                        xg_att_1 = dati_sq1.get('xG Casa', 1.0)
+                        xg_att_2 = dati_sq2.get('xG Trasferta', 1.0)
+                        xg_base_1 = (xg_att_1 + dati_sq2.get('xGA Trasferta', 1.0)) / 2.0
+                        xg_base_2 = (xg_att_2 + dati_sq1.get('xGA Casa', 1.0)) / 2.0
                         tp_1 = dati_sq1.get('Tiri in porta Casa', 4.0)
                         tp_2 = dati_sq2.get('Tiri in porta Trasferta', 3.5)
                         tt_1 = dati_sq1.get('Tiri totali Casa', 12.0)
@@ -683,8 +835,10 @@ if not st.session_state.pagina_impostazioni:
                         media_tp_1 = df_selezionato['Tiri in porta Casa'].mean() if 'Tiri in porta Casa' in df_selezionato.columns else 4.2
                         media_tp_2 = df_selezionato['Tiri in porta Trasferta'].mean() if 'Tiri in porta Trasferta' in df_selezionato.columns else 3.6
                     else:
-                        xg_base_1 = ((dati_sq1.get('xG Casa',0)+dati_sq1.get('xG Trasferta',0))/2.0 + (dati_sq2.get('xGA Casa',0)+dati_sq2.get('xGA Trasferta',0))/2.0) / 2.0
-                        xg_base_2 = ((dati_sq2.get('xG Casa',0)+dati_sq2.get('xG Trasferta',0))/2.0 + (dati_sq1.get('xGA Casa',0)+dati_sq1.get('xGA Trasferta',0))/2.0) / 2.0
+                        xg_att_1 = xg_stag_1
+                        xg_att_2 = xg_stag_2
+                        xg_base_1 = (xg_att_1 + (dati_sq2.get('xGA Casa',0)+dati_sq2.get('xGA Trasferta',0))/2.0) / 2.0
+                        xg_base_2 = (xg_att_2 + (dati_sq1.get('xGA Casa',0)+dati_sq1.get('xGA Trasferta',0))/2.0) / 2.0
                         tp_1 = (dati_sq1.get('Tiri in porta Casa', 0) + dati_sq1.get('Tiri in porta Trasferta', 0)) / 2.0
                         tp_2 = (dati_sq2.get('Tiri in porta Casa', 0) + dati_sq2.get('Tiri in porta Trasferta', 0)) / 2.0
                         tt_1 = (dati_sq1.get('Tiri totali Casa', 0) + dati_sq1.get('Tiri totali Trasferta', 0)) / 2.0
@@ -696,65 +850,42 @@ if not st.session_state.pagina_impostazioni:
                         media_tp_1 = 4.0
                         media_tp_2 = 4.0
 
-                    fattore_tp_1 = max(0.85, min(1.18, tp_1 / media_tp_1)) if media_tp_1 > 0 else 1.0
-                    fattore_tp_2 = max(0.85, min(1.18, tp_2 / media_tp_2)) if media_tp_2 > 0 else 1.0
+                    # 1. DNA Tattico & Momentum 5G
+                    dna_1 = analizza_dna_squadra(squadra_1, df_partite, xg_att_1, tt_1, xg_stag_1)
+                    dna_2 = analizza_dna_squadra(squadra_2, df_partite, xg_att_2, tt_2, xg_stag_2)
 
-                    gol_sq1 = ((xg_base_1 * 0.85) + (xg_base_1 * fattore_tp_1 * 0.15)) * 1.06
-                    gol_sq2 = ((xg_base_2 * 0.85) + (xg_base_2 * fattore_tp_2 * 0.15)) * 0.94
-                    xg_totali_match = gol_sq1 + gol_sq2
+                    # 2. Poisson Calibrato (Forma 5G + Coppe)
+                    l1, l2, p_1, p_x, p_2, risultati_esatti = calcola_poisson_match(
+                        xg_base_1, xg_base_2, tp_1, tp_2, media_tp_1, media_tp_2,
+                        dna_1, dna_2, coppe_casa, coppe_ospite
+                    )
+                    xg_totali_match = l1 + l2
 
-                    l1 = max(0.1, gol_sq1)
-                    l2 = max(0.1, gol_sq2)
-                    probs_1 = [(math.exp(-l1) * (l1**k)) / math.factorial(k) for k in range(7)]
-                    probs_2 = [(math.exp(-l2) * (l2**k)) / math.factorial(k) for k in range(7)]
-
-                    p_1, p_x, p_2 = 0.0, 0.0, 0.0
-                    risultati_esatti = []
-                    for i in range(7):
-                        for j in range(7):
-                            p_ij = probs_1[i] * probs_2[j]
-                            if i > j: p_1 += p_ij
-                            elif i == j: p_x += p_ij
-                            else: p_2 += p_ij
-                            if i <= 4 and j <= 4:
-                                risultati_esatti.append((f"{i}-{j}", p_ij * 100))
-
-                    tot_p = p_1 + p_x + p_2
-                    if tot_p > 0:
-                        p_1, p_x, p_2 = (p_1 / tot_p) * 100, (p_x / tot_p) * 100, (p_2 / tot_p) * 100
+                    # 3. Correttore Game State (da probabilità 1X2)
+                    mult_gs_1, label_gs_1 = calcola_game_state(p_1, p_2)
+                    mult_gs_2, label_gs_2 = calcola_game_state(p_2, p_1)
 
                     p_1x = p_1 + p_x
                     p_x2 = p_x + p_2
-
                     qf_1 = 100 / p_1 if p_1 > 0 else 99.0
                     qf_x = 100 / p_x if p_x > 0 else 99.0
                     qf_2 = 100 / p_2 if p_2 > 0 else 99.0
                     qf_1x = 100 / p_1x if p_1x > 0 else 99.0
                     qf_x2 = 100 / p_x2 if p_x2 > 0 else 99.0
-
-                    risultati_esatti.sort(key=lambda x: x[1])
                     top_2_ris = f"{risultati_esatti[-1][0]} ({risultati_esatti[-1][1]:.1f}%)  |  {risultati_esatti[-2][0]} ({risultati_esatti[-2][1]:.1f}%)"
 
                     if p_1 >= 56:
                         esito_consigliato = f"1 FISSO ({squadra_1})"
-                        prob_esito = p_1
-                        qf_esito = qf_1
-                        col_esito = "#00cc66"
+                        prob_esito = p_1; qf_esito = qf_1; col_esito = "#00cc66"
                     elif p_2 >= 56:
                         esito_consigliato = f"2 FISSO ({squadra_2})"
-                        prob_esito = p_2
-                        qf_esito = qf_2
-                        col_esito = "#ff4b4b"
+                        prob_esito = p_2; qf_esito = qf_2; col_esito = "#ff4b4b"
                     elif p_1 >= 44:
                         esito_consigliato = f"DOPPIA CHANCE 1X ({squadra_1} o Pareggio)"
-                        prob_esito = p_1x
-                        qf_esito = qf_1x
-                        col_esito = "#00cc66"
+                        prob_esito = p_1x; qf_esito = qf_1x; col_esito = "#00cc66"
                     elif p_2 >= 44:
                         esito_consigliato = f"DOPPIA CHANCE X2 ({squadra_2} o Pareggio)"
-                        prob_esito = p_x2
-                        qf_esito = qf_x2
-                        col_esito = "#ff4b4b"
+                        prob_esito = p_x2; qf_esito = qf_x2; col_esito = "#ff4b4b"
                     else:
                         esito_consigliato = "GARA IN EQUILIBRIO (Meglio Mercati Gol / Statistiche)"
                         prob_esito = max(p_1x, p_x2)
@@ -800,7 +931,62 @@ if not st.session_state.pagina_impostazioni:
                     </div>
                     """, unsafe_allow_html=True)
 
-                    def analizza_squadra_ia(lmbda, tiri_tot, tiri_porta):
+                    # =========================================================================
+                    # 🔬 PANNELLO DNA TATTICO (GAME STATE + SPRECONI/CINICI + xG/TIRO + FORMA)
+                    # =========================================================================
+                    st.markdown("#### 🔬 DNA Tattico & Correttori Attivi (Game State • Cinismo • Qualità Tiro • Forma)")
+                    col_dna1, col_dna2 = st.columns(2)
+                    with col_dna1:
+                        coppe_txt_1 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_casa else "<span style='color:#888;'>Riposata</span>"
+                        st.markdown(f"""
+                        <div class="glass-box" style="border-left: 4px solid #00cc66; padding: 14px 16px; margin-bottom: 16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <b style="color:#00cc66; font-size:0.95em;">🏠 {stemma_sq1}{squadra_1}</b>
+                                <span style="font-size:0.75em; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:6px;">{dna_1['momentum_label']} • {coppe_txt_1}</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Game State</span>
+                                    <b style="color:#fff;">{label_gs_1}</b>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Cinismo (Gol/xG)</span>
+                                    <b style="color:#fff;">{dna_1['stato_cinismo']}</b>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Qualità ({dna_1['xg_per_tiro']:.3f} xG/T)</span>
+                                    <b style="color:#fff;">{dna_1['stato_tiro']}</b>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with col_dna2:
+                        coppe_txt_2 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_ospite else "<span style='color:#888;'>Riposata</span>"
+                        st.markdown(f"""
+                        <div class="glass-box" style="border-left: 4px solid #ff4b4b; padding: 14px 16px; margin-bottom: 16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <b style="color:#ff4b4b; font-size:0.95em;">✈️ {stemma_sq2}{squadra_2}</b>
+                                <span style="font-size:0.75em; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:6px;">{dna_2['momentum_label']} • {coppe_txt_2}</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Game State</span>
+                                    <b style="color:#fff;">{label_gs_2}</b>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Cinismo (Gol/xG)</span>
+                                    <b style="color:#fff;">{dna_2['stato_cinismo']}</b>
+                                </div>
+                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
+                                    <span style="color:#888; display:block;">Qualità ({dna_2['xg_per_tiro']:.3f} xG/T)</span>
+                                    <b style="color:#fff;">{dna_2['stato_tiro']}</b>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    def analizza_squadra_ia(lmbda, tiri_tot, dna_sq):
                         probs = {k: (math.exp(-lmbda) * (lmbda**k)) / math.factorial(k) for k in range(7)}
                         mg_1_2 = (probs[1] + probs[2]) * 100
                         mg_1_3 = (probs[1] + probs[2] + probs[3]) * 100
@@ -823,25 +1009,24 @@ if not st.session_state.pagina_impostazioni:
 
                         quota_fair = 100 / prob_scelta if prob_scelta > 0 else 0
 
-                        rapporto_xg_tiri = lmbda / tiri_tot if tiri_tot > 0 else 0.10
-                        if lmbda >= 1.45 and rapporto_xg_tiri >= 0.125:
-                            bussola = "🎯 <b>SQUADRA CINICA:</b> Segna con pochi tiri (rischio sblocco rapido e calo di ritmo). <b>Meglio Multigol / 1X2</b> rispetto a Tiri/Corner."
-                        elif tiri_tot >= 13.0 and rapporto_xg_tiri < 0.115:
-                            bussola = "🔥 <b>ALTO VOLUME D'ASSEDIO:</b> Tira tantissimo ma fatica a chiuderla. Scenario <b>TOP per Over Tiri e Corner</b>."
+                        if "Iper-Cinica" in dna_sq['stato_cinismo'] or dna_sq['xg_per_tiro'] > 0.135:
+                            bussola = "🎯 <b>PROFILO CINICO / AREA:</b> Concretizza con pochi tiri. <b>Meglio Multigol / 1X2</b> rispetto a Corner o Over Tiri alti."
+                        elif "Sprecona" in dna_sq['stato_cinismo'] or dna_sq['xg_per_tiro'] < 0.095:
+                            bussola = "🔥 <b>PROFILO D'ASSEDIO / SPRECONE:</b> Crea volume ma fatica a chiuderla. Scenario <b>TOP per Over Tiri, Corner e Parate Avversario</b>."
                         else:
-                            bussola = "⚖️ <b>PRODUZIONE BILANCIATA:</b> Equilibrio tra occasioni create e volume di tiro. Valido sia il <b>Multigol</b> sia le <b>Statistiche</b>."
+                            bussola = "⚖️ <b>PRODUZIONE BILANCIATA:</b> Equilibrio tra occasioni e volume di tiro. Valido sia il <b>Multigol</b> sia le <b>Statistiche</b>."
 
                         return consiglio, prob_scelta, quota_fair, mg_1_2, mg_1_3, mg_2_3, bussola
 
-                    cons_1, prob_1, qf_1_mg, m12_1, m13_1, m23_1, buss_1 = analizza_squadra_ia(l1, tt_1, tp_1)
-                    cons_2, prob_2, qf_2_mg, m12_2, m13_2, m23_2, buss_2 = analizza_squadra_ia(l2, tt_2, tp_2)
+                    cons_1, prob_1, qf_1_mg, m12_1, m13_1, m23_1, buss_1 = analizza_squadra_ia(l1, tt_1, dna_1)
+                    cons_2, prob_2, qf_2_mg, m12_2, m13_2, m23_2, buss_2 = analizza_squadra_ia(l2, tt_2, dna_2)
 
                     col_mg1, col_mg2 = st.columns(2)
                     
                     with col_mg1:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 5px solid #00cc66;">
-                            <h4 style="margin:0; color:#00cc66;">🏠 {stemma_sq1}{squadra_1} (xG Incrociati: {l1:.2f})</h4>
+                            <h4 style="margin:0; color:#00cc66;">🏠 {stemma_sq1}{squadra_1} (xG Calibrati: {l1:.2f})</h4>
                             <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #aaa;">Multigol Squadra Consigliato:</p>
                             <h2 style="margin:0; color:#fff; font-family:'JetBrains Mono', monospace;">⚽ {cons_1}</h2>
                             <p style="margin: 4px 0 12px 0; font-size: 0.85em; color: #00cc66;">Probabilità: <b>{prob_1:.1f}%</b> | Quota Fair: <b>{qf_1_mg:.2f}</b></p>
@@ -859,7 +1044,7 @@ if not st.session_state.pagina_impostazioni:
                     with col_mg2:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 5px solid #ff4b4b;">
-                            <h4 style="margin:0; color:#ff4b4b;">✈️ {stemma_sq2}{squadra_2} (xG Incrociati: {l2:.2f})</h4>
+                            <h4 style="margin:0; color:#ff4b4b;">✈️ {stemma_sq2}{squadra_2} (xG Calibrati: {l2:.2f})</h4>
                             <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #aaa;">Multigol Squadra Consigliato:</p>
                             <h2 style="margin:0; color:#fff; font-family:'JetBrains Mono', monospace;">⚽ {cons_2}</h2>
                             <p style="margin: 4px 0 12px 0; font-size: 0.85em; color: #ff4b4b;">Probabilità: <b>{prob_2:.1f}%</b> | Quota Fair: <b>{qf_2_mg:.2f}</b></p>
@@ -883,37 +1068,51 @@ if not st.session_state.pagina_impostazioni:
                         st.warning(f"⚖️ **RITMO MEDIO ({xg_totali_match:.2f} xG Totali):** Match equilibrato, ottimo per **Multigol 2-4 Totale**.")
 
                     # =========================================================================
-                    # CALCOLO CENTRALIZZATO PROIEZIONI INCROCIATE (TIRI, TIRI PORTA, CORNER)
+                    # CALCOLO CENTRALIZZATO PROIEZIONI INCROCIATE + CORRETTORI TATTICI
                     # =========================================================================
+                    m_coppe_1 = 0.90 if coppe_casa else 1.00
+                    m_coppe_2 = 0.90 if coppe_ospite else 1.00
+
+                    mult_tt_1 = max(0.80, min(1.15, mult_gs_1 * dna_1['mult_cin_stat'] * m_coppe_1))
+                    mult_tt_2 = max(0.80, min(1.15, mult_gs_2 * dna_2['mult_cin_stat'] * m_coppe_2))
+
+                    mult_tp_1 = max(0.82, min(1.12, mult_gs_1 * m_coppe_1))
+                    mult_tp_2 = max(0.82, min(1.12, mult_gs_2 * m_coppe_2))
+
+                    mult_cor_1 = max(0.80, min(1.16, mult_gs_1 * dna_1['mult_cin_stat'] * dna_1['mult_cor_tiro'] * m_coppe_1))
+                    mult_cor_2 = max(0.80, min(1.16, mult_gs_2 * dna_2['mult_cin_stat'] * dna_2['mult_cor_tiro'] * m_coppe_2))
+
                     sub_tt_2, stato_tt_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri totali Casa', 'Tiri totali Trasferta')
                     sub_tt_1, stato_tt_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri totali Trasferta', 'Tiri totali Casa')
-                    proj_tt_1 = (tt_1 + sub_tt_2) / 2.0 if sub_tt_2 > 0 else tt_1
-                    proj_tt_2 = (tt_2 + sub_tt_1) / 2.0 if sub_tt_1 > 0 else tt_2
+                    proj_tt_1 = ((tt_1 + sub_tt_2) / 2.0 if sub_tt_2 > 0 else tt_1) * mult_tt_1
+                    proj_tt_2 = ((tt_2 + sub_tt_1) / 2.0 if sub_tt_1 > 0 else tt_2) * mult_tt_2
 
                     sub_tp_2, stato_tp_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Tiri in porta Casa', 'Tiri in porta Trasferta')
                     sub_tp_1, stato_tp_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Tiri in porta Trasferta', 'Tiri in porta Casa')
-                    proj_tp_1 = (tp_1 + sub_tp_2) / 2.0 if sub_tp_2 > 0 else tp_1
-                    proj_tp_2 = (tp_2 + sub_tp_1) / 2.0 if sub_tp_1 > 0 else tp_2
+                    proj_tp_1 = ((tp_1 + sub_tp_2) / 2.0 if sub_tp_2 > 0 else tp_1) * mult_tp_1
+                    proj_tp_2 = ((tp_2 + sub_tp_1) / 2.0 if sub_tp_1 > 0 else tp_2) * mult_tp_2
 
                     sub_cor_2, stato_cor_2 = stima_stat_subita(df_selezionato, dati_sq2, 'Trasferta', 'Corner Casa', 'Corner Trasferta')
                     sub_cor_1, stato_cor_1 = stima_stat_subita(df_selezionato, dati_sq1, 'Casa', 'Corner Trasferta', 'Corner Casa')
-                    proj_cor_1 = (cor_1 + sub_cor_2) / 2.0 if sub_cor_2 > 0 else cor_1
-                    proj_cor_2 = (cor_2 + sub_cor_1) / 2.0 if sub_cor_1 > 0 else cor_2
+                    proj_cor_1 = ((cor_1 + sub_cor_2) / 2.0 if sub_cor_2 > 0 else cor_1) * mult_cor_1
+                    proj_cor_2 = ((cor_2 + sub_cor_1) / 2.0 if sub_cor_1 > 0 else cor_2) * mult_cor_2
 
                     # =========================================================================
-                    # 📏 NUOVA SEZIONE: LINEE STATISTICHE PREVISTE (SQUADRA & TOTALE MATCH)
+                    # 📏 LINEE STATISTICHE PREVISTE (SQUADRA & TOTALE MATCH)
                     # =========================================================================
-                    st.markdown("<h4 style='margin-top: 30px;'>📏 Linee Statistiche Previste (Incrocio Fatti vs Concessi Avversario)</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Calcola una possibile linea statistica sicura (Target Reale di Cassa + cuscinetto) incrociando la media della squadra con quanto concede la difesa avversaria.</p>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='margin-top: 30px;'>📏 Linee Statistiche Previste (Calibrate con Game State, Cinismo, Qualità Tiro & Coppe)</h4>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Incrocia i dati prodotti dalla squadra con quelli concessi dall'avversario applicando tutti i correttori tattici e il cuscinetto sul Target Reale di Cassa.</p>", unsafe_allow_html=True)
 
-                    def genera_riga_linea_html(icona, etichetta, media_fatti, subiti_avv, stato_dif, proj_reale, cuscinetto):
+                    def genera_riga_linea_html(icona, etichetta, media_fatti, subiti_avv, stato_dif, proj_reale, cuscinetto, mult_appl):
                         linea_txt, target_int, marg, col_badge = calcola_linea_statistica(proj_reale, cuscinetto, stato_dif)
                         extra_target = f"Servono <b>{target_int}</b> (+{marg:.2f})" if target_int > 0 else "Dati bassi"
+                        delta_pct = (mult_appl - 1.0) * 100
+                        tag_corr = f"<span style='color:{'#00cc66' if delta_pct > 0.5 else ('#ffb703' if delta_pct < -0.5 else '#888')};'>({delta_pct:+.0f}% IA)</span>" if abs(delta_pct) >= 1.0 else ""
                         return f"""
                         <div style="background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                                 <div>
-                                    <span style="font-size:0.85em; font-weight:700; color:#fff;">{icona} {etichetta}</span>
+                                    <span style="font-size:0.85em; font-weight:700; color:#fff;">{icona} {etichetta} {tag_corr}</span>
                                     <div style="font-size:0.74em; color:#aaa; margin-top:2px;">
                                         Media: <b style="color:#ddd;">{media_fatti:.2f}</b> &nbsp;|&nbsp; Concessi Avv: <b style="color:#ddd;">{subiti_avv:.2f}</b> <span style="font-size:0.95em;">({stato_dif})</span>
                                     </div>
@@ -930,9 +1129,9 @@ if not st.session_state.pagina_impostazioni:
 
                     col_lin1, col_lin2 = st.columns(2)
                     with col_lin1:
-                        r1_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_1, sub_tt_2, stato_tt_2, proj_tt_1, 1.1)
-                        r1_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_1, sub_tp_2, stato_tp_2, proj_tp_1, 0.6)
-                        r1_cor = genera_riga_linea_html("🚩", "Corner", cor_1, sub_cor_2, stato_cor_2, proj_cor_1, 0.7)
+                        r1_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_1, sub_tt_2, stato_tt_2, proj_tt_1, 1.1, mult_tt_1)
+                        r1_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_1, sub_tp_2, stato_tp_2, proj_tp_1, 0.6, mult_tp_1)
+                        r1_cor = genera_riga_linea_html("🚩", "Corner", cor_1, sub_cor_2, stato_cor_2, proj_cor_1, 0.7, mult_cor_1)
                         st.markdown(f"""
                         <div class="glass-box" style="border-top: 3px solid #00cc66; padding: 16px; margin-bottom: 14px;">
                             <h4 style="margin:0 0 12px 0; color:#00cc66;">🏠 Linee {stemma_sq1}{squadra_1} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_2}</span></h4>
@@ -943,9 +1142,9 @@ if not st.session_state.pagina_impostazioni:
                         """, unsafe_allow_html=True)
 
                     with col_lin2:
-                        r2_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_2, sub_tt_1, stato_tt_1, proj_tt_2, 1.1)
-                        r2_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_2, sub_tp_1, stato_tp_1, proj_tp_2, 0.6)
-                        r2_cor = genera_riga_linea_html("🚩", "Corner", cor_2, sub_cor_1, stato_cor_1, proj_cor_2, 0.7)
+                        r2_tt = genera_riga_linea_html("👟", "Tiri Totali", tt_2, sub_tt_1, stato_tt_1, proj_tt_2, 1.1, mult_tt_2)
+                        r2_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_2, sub_tp_1, stato_tp_1, proj_tp_2, 0.6, mult_tp_2)
+                        r2_cor = genera_riga_linea_html("🚩", "Corner", cor_2, sub_cor_1, stato_cor_1, proj_cor_2, 0.7, mult_cor_2)
                         st.markdown(f"""
                         <div class="glass-box" style="border-top: 3px solid #ff4b4b; padding: 16px; margin-bottom: 14px;">
                             <h4 style="margin:0 0 12px 0; color:#ff4b4b;">✈️ Linee {stemma_sq2}{squadra_2} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_1}</span></h4>
@@ -955,7 +1154,6 @@ if not st.session_state.pagina_impostazioni:
                         </div>
                         """, unsafe_allow_html=True)
 
-                    # BARRA RIEPILOGATIVA TOTALE MATCH (SOMMA PROIEZIONI INCROCIATE)
                     proj_tot_tt = proj_tt_1 + proj_tt_2
                     proj_tot_tp = proj_tp_1 + proj_tp_2
                     proj_tot_cor = proj_cor_1 + proj_cor_2
@@ -991,16 +1189,16 @@ if not st.session_state.pagina_impostazioni:
                     </div>
                     """, unsafe_allow_html=True)
                         
-                    st.markdown("<h4 style='margin-top: 30px;'>🧤 Focus Portieri & Indice di Assedio (Scommesse Speciali)</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Calcola le parate attese incrociando i tiri in porta dell'avversario con la vulnerabilità difensiva della squadra.</p>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='margin-top: 30px;'>🧤 Focus Portieri & Indice di Assedio (Calibrato con Qualità Tiro Avversario)</h4>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Calcola le parate attese incrociando i tiri in porta calibrati, la vulnerabilità difensiva e la tendenza avversaria al tiro da fuori (xG/Tiro).</p>", unsafe_allow_html=True)
                     
                     molt_difesa_1 = (dati_sq1.get('xGA Casa', 1.25) / 1.25) if simula_reale else 1.0
-                    tiri_subiti_1 = tp_2 * molt_difesa_1
-                    parate_attese_1 = tiri_subiti_1 * 0.725
+                    tiri_subiti_1 = proj_tp_2 * max(0.80, min(1.25, molt_difesa_1))
+                    parate_attese_1 = tiri_subiti_1 * 0.725 * dna_2['mult_par_tiro'] * (1.05 if "Sprecona" in dna_2['stato_cinismo'] else 1.0)
                     
                     molt_difesa_2 = (dati_sq2.get('xGA Trasferta', 1.25) / 1.25) if simula_reale else 1.0
-                    tiri_subiti_2 = tp_1 * molt_difesa_2
-                    parate_attese_2 = tiri_subiti_2 * 0.725
+                    tiri_subiti_2 = proj_tp_1 * max(0.80, min(1.25, molt_difesa_2))
+                    parate_attese_2 = tiri_subiti_2 * 0.725 * dna_1['mult_par_tiro'] * (1.05 if "Sprecona" in dna_1['stato_cinismo'] else 1.0)
                     
                     def genera_card_portiere(squadra, stemma_html, parate, tiri_subiti, ruolo):
                         if parate >= 3.6:
@@ -1031,7 +1229,7 @@ if not st.session_state.pagina_impostazioni:
                         st.markdown(genera_card_portiere(squadra_2, stemma_sq2, parate_attese_2, tiri_subiti_2, "Trasferta"), unsafe_allow_html=True)
 
                     st.markdown("<h4 style='margin-top: 30px;'>🥊 Verdetto IA: Testa a Testa (1X2) Tiri, Corner & Falli</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Simulazione dei 4 duelli statistici diretti calibrata con vulnerabilità difensiva e indice di pressione tattica (Game State).</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Simulazione dei 4 duelli statistici diretti calibrata con Game State, Qualità Tiro, Cinismo e Affaticamento Coppe.</p>", unsafe_allow_html=True)
 
                     diff_tt = proj_tt_1 - proj_tt_2
                     if diff_tt >= 3.5:
@@ -1102,8 +1300,8 @@ if not st.session_state.pagina_impostazioni:
                     indice_pressione_1 = (l1 / (l1 + l2)) * 0.5 + (tt_1 / (tt_1 + tt_2 if (tt_1+tt_2)>0 else 1)) * 0.5
                     indice_pressione_2 = 1.0 - indice_pressione_1
 
-                    molt_tattico_fal_1 = 1.0 + ((indice_pressione_2 - 0.50) * 0.35) if indice_pressione_2 > 0.52 else 1.0
-                    molt_tattico_fal_2 = 1.0 + ((indice_pressione_1 - 0.50) * 0.35) if indice_pressione_1 > 0.52 else 1.0
+                    molt_tattico_fal_1 = (1.0 + ((indice_pressione_2 - 0.50) * 0.35) if indice_pressione_2 > 0.52 else 1.0) * (1.05 if coppe_casa else 1.0)
+                    molt_tattico_fal_2 = (1.0 + ((indice_pressione_1 - 0.50) * 0.35) if indice_pressione_1 > 0.52 else 1.0) * (1.05 if coppe_ospite else 1.0)
 
                     proj_fal_1 = fal_1 * molt_tattico_fal_1
                     proj_fal_2 = fal_2 * molt_tattico_fal_2
@@ -1226,7 +1424,7 @@ if not st.session_state.pagina_impostazioni:
                         f_en = ottieni_bandiera_html('Premier League', 22)
                         f_es = ottieni_bandiera_html('La Liga', 22)
                         st.markdown(f"### 🌍 Scanner Universale Value Bet ({f_it}Serie A &nbsp;•&nbsp; {f_en}Premier League &nbsp;•&nbsp; {f_es}La Liga)", unsafe_allow_html=True)
-                        st.markdown("<p style='color:#a0a0a0;'>Sistema <b>Salva-Cassa</b> attivo: penalizza le giocate contro difese chiuse, verifica i <b>3 Semafori di Sicurezza</b> e isola la <b>Scelta Migliore per Partita</b>.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='color:#a0a0a0;'>Motore <b>Salva-Cassa Pro</b> attivo: integra <b>Game State, Spreconi/Cinici, Qualità Tiro, Forma 5G e Affaticamento Coppe</b>.</p>", unsafe_allow_html=True)
                         
                         col_sl1, col_sl2 = st.columns([1, 1])
                         with col_sl1:
@@ -1238,6 +1436,21 @@ if not st.session_state.pagina_impostazioni:
                                 nome_pulito = filtro_lega_scanner.replace('🇮🇹 ', '').replace('🏴󠁧󠁢󠁥󠁮󠁧󠁿 ', '').replace('🇪🇸 ', '')
                                 st.markdown(f"<div style='margin-top:-8px; font-size:0.82em; color:#00cc66;'>{flag_sel} Filtro attivo: <b>{nome_pulito}</b></div>", unsafe_allow_html=True)
                         
+                        df_palinsesto = dati_campionati.get('Palinsesto', pd.DataFrame())
+                        
+                        # Selettore rapido Coppe Europee basato sulle squadre presenti nel Palinsesto
+                        squadre_palinsesto = []
+                        if df_palinsesto is not None and not df_palinsesto.empty:
+                            sc_c = df_palinsesto['Squadra Casa'].dropna().astype(str).str.strip().tolist() if 'Squadra Casa' in df_palinsesto.columns else []
+                            sc_t = df_palinsesto['Squadra Trasferta'].dropna().astype(str).str.strip().tolist() if 'Squadra Trasferta' in df_palinsesto.columns else []
+                            squadre_palinsesto = sorted(list(set([s for s in sc_c + sc_t if s and s != '0'])))
+                        
+                        squadre_coppe_scanner = st.multiselect(
+                            "🇪🇺 Squadre reduci da Coppe Europee in settimana (applica freno automatico -10% su xG/Tiri/Corner):",
+                            options=squadre_palinsesto,
+                            default=[]
+                        )
+
                         col_chk1, col_chk2 = st.columns(2)
                         with col_chk1:
                             solo_prima_scelta = st.checkbox("👑 Mostra SOLO la Giocata più sicura per ogni Partita (Evita indecisioni)", value=True)
@@ -1245,8 +1458,6 @@ if not st.session_state.pagina_impostazioni:
                             nascondi_muri = st.checkbox("🛡️ Nascondi giocate contro 'Difese Muro / Chiuse' (Salva-Cassa)", value=False)
 
                         st.divider()
-                        
-                        df_palinsesto = dati_campionati.get('Palinsesto', pd.DataFrame())
                         
                         if df_palinsesto is None or df_palinsesto.empty:
                             st.warning("⚠️ **Foglio 'Palinsesto' non trovato o vuoto.**")
@@ -1293,108 +1504,118 @@ if not st.session_state.pagina_impostazioni:
                                 dati_t = df_lega_match[df_lega_match['Squadra'] == trasf].iloc[0]
                                 match_name = f"{casa} - {trasf}"
                                 
+                                is_coppe_c = casa in squadre_coppe_scanner
+                                is_coppe_t = trasf in squadre_coppe_scanner
+                                tag_ec_c = " <span style='font-size:0.7em; color:#ffb703;'>[🇪🇺]</span>" if is_coppe_c else ""
+                                tag_ec_t = " <span style='font-size:0.7em; color:#ffb703;'>[🇪🇺]</span>" if is_coppe_t else ""
+
                                 stemma_c_card = ottieni_stemma_html(casa, lega_pura, size=22)
                                 stemma_t_card = ottieni_stemma_html(trasf, lega_pura, size=22)
-                                match_html_card = f"{stemma_c_card}{casa} <span style='color:#888; font-weight:400;'>vs</span> {stemma_t_card}{trasf}"
+                                match_html_card = f"{stemma_c_card}{casa}{tag_ec_c} <span style='color:#888; font-weight:400;'>vs</span> {stemma_t_card}{trasf}{tag_ec_t}"
                                 flag_card_html = f"{ottieni_bandiera_html(lega_pura, 16)}{lega_pura}"
+
+                                # Calcolo centralizzato DNA + Poisson + Game State per l'intero match
+                                xg_c_att = dati_c.get('xG Casa', 1.0)
+                                xg_t_att = dati_t.get('xG Trasferta', 1.0)
+                                xg_c_stag = (dati_c.get('xG Casa', 0) + dati_c.get('xG Trasferta', 0)) / 2.0
+                                xg_t_stag = (dati_t.get('xG Casa', 0) + dati_t.get('xG Trasferta', 0)) / 2.0
+                                tiri_tot_c = dati_c.get('Tiri totali Casa', 0)
+                                tiri_tot_t = dati_t.get('Tiri totali Trasferta', 0)
+                                porta_c = dati_c.get('Tiri in porta Casa', 0)
+                                porta_t = dati_t.get('Tiri in porta Trasferta', 0)
+                                corner_c = dati_c.get('Corner Casa', 0)
+                                corner_t = dati_t.get('Corner Trasferta', 0)
+                                falli_c = dati_c.get('Falli Commessi Casa', 0)
+                                falli_t = dati_t.get('Falli Commessi Trasferta', 0)
+
+                                dna_c = analizza_dna_squadra(casa, df_partite, xg_c_att, tiri_tot_c, xg_c_stag)
+                                dna_t = analizza_dna_squadra(trasf, df_partite, xg_t_att, tiri_tot_t, xg_t_stag)
+
+                                xg_base_1 = (xg_c_att + dati_t.get('xGA Trasferta', 1.0)) / 2.0
+                                xg_base_2 = (xg_t_att + dati_c.get('xGA Casa', 1.0)) / 2.0
+                                media_tp_1 = df_lega_match['Tiri in porta Casa'].mean() if 'Tiri in porta Casa' in df_lega_match.columns else 4.2
+                                media_tp_2 = df_lega_match['Tiri in porta Trasferta'].mean() if 'Tiri in porta Trasferta' in df_lega_match.columns else 3.6
+
+                                lmbda_1, lmbda_2, p_1_pura, p_x_pura, p_2_pura, _ = calcola_poisson_match(
+                                    xg_base_1, xg_base_2, porta_c, porta_t, media_tp_1, media_tp_2,
+                                    dna_c, dna_t, is_coppe_c, is_coppe_t
+                                )
+
+                                m_gs_c, lbl_gs_c = calcola_game_state(p_1_pura, p_2_pura)
+                                m_gs_t, lbl_gs_t = calcola_game_state(p_2_pura, p_1_pura)
+                                m_ec_c = 0.90 if is_coppe_c else 1.00
+                                m_ec_t = 0.90 if is_coppe_t else 1.00
 
                                 q_1 = pd.to_numeric(row.get('Quota 1', 0), errors='coerce')
                                 q_2 = pd.to_numeric(row.get('Quota 2', 0), errors='coerce')
                                 
-                                if (not pd.isna(q_1) and q_1 > 1.0) or (not pd.isna(q_2) and q_2 > 1.0):
-                                    xg_base_1 = (dati_c.get('xG Casa', 1.0) + dati_t.get('xGA Trasferta', 1.0)) / 2.0
-                                    xg_base_2 = (dati_t.get('xG Trasferta', 1.0) + dati_c.get('xGA Casa', 1.0)) / 2.0
-                                    tp_1 = dati_c.get('Tiri in porta Casa', 4.0)
-                                    tp_2 = dati_t.get('Tiri in porta Trasferta', 4.0)
-                                    media_tp_1 = df_lega_match['Tiri in porta Casa'].mean() if 'Tiri in porta Casa' in df_lega_match.columns else 4.2
-                                    media_tp_2 = df_lega_match['Tiri in porta Trasferta'].mean() if 'Tiri in porta Trasferta' in df_lega_match.columns else 3.6
+                                if not pd.isna(q_1) and 1.55 <= q_1 <= 2.25:
+                                    prob_book_1 = (100 / q_1) * 0.95
+                                    prob_blend_1 = (p_1_pura * 0.65) + (prob_book_1 * 0.35)
+                                    q_fair_1 = 100 / prob_blend_1 if prob_blend_1 > 0 else 99.0
+                                    edge_1 = prob_blend_1 - (100 / q_1)
                                     
-                                    f_tp_1 = max(0.85, min(1.18, tp_1 / media_tp_1)) if media_tp_1 > 0 else 1.0
-                                    f_tp_2 = max(0.85, min(1.18, tp_2 / media_tp_2)) if media_tp_2 > 0 else 1.0
-                                    
-                                    lmbda_1 = max(0.1, ((xg_base_1 * 0.85) + (xg_base_1 * f_tp_1 * 0.15)) * 1.06)
-                                    lmbda_2 = max(0.1, ((xg_base_2 * 0.85) + (xg_base_2 * f_tp_2 * 0.15)) * 0.94)
-                                    
-                                    probs_1 = [(math.exp(-lmbda_1) * (lmbda_1**k)) / math.factorial(k) for k in range(7)]
-                                    probs_2 = [(math.exp(-lmbda_2) * (lmbda_2**k)) / math.factorial(k) for k in range(7)]
-                                    
-                                    p_1, p_x, p_2 = 0.0, 0.0, 0.0
-                                    for i in range(7):
-                                        for j in range(7):
-                                            p_ij = probs_1[i] * probs_2[j]
-                                            if i > j: p_1 += p_ij
-                                            elif i == j: p_x += p_ij
-                                            else: p_2 += p_ij
-                                            
-                                    tot_p = p_1 + p_x + p_2
-                                    p_1_pura = (p_1 / tot_p) * 100 if tot_p > 0 else 0
-                                    p_2_pura = (p_2 / tot_p) * 100 if tot_p > 0 else 0
-                                    
-                                    if not pd.isna(q_1) and 1.55 <= q_1 <= 2.25:
-                                        prob_book_1 = (100 / q_1) * 0.95
-                                        prob_blend_1 = (p_1_pura * 0.65) + (prob_book_1 * 0.35)
-                                        q_fair_1 = 100 / prob_blend_1 if prob_blend_1 > 0 else 99.0
-                                        edge_1 = prob_blend_1 - (100 / q_1)
+                                    if prob_blend_1 >= 52.0 and edge_1 >= 3.0:
+                                        spia_1x2 = f"🎯 {dna_c['momentum_label']} • {dna_c['stato_cinismo'].split(' ')[0]} {dna_c['stato_cinismo'].split(' ')[1]}"
+                                        chk_m = edge_1 >= 5.5
+                                        chk_d = ((lmbda_1 - lmbda_2) >= 0.45) and (not is_coppe_c)
+                                        chk_q = 1.65 <= q_1 <= 2.15
+                                        n_sem = int(chk_m) + int(chk_d) + int(chk_q)
+                                        str_sem = f"{'🟢' if chk_m else '🟡'}Margine &nbsp;{'🟢' if chk_d else '🟡'}xG/Coppe &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
+                                        risultati_value.append({
+                                            'Tipo_Mercato': '1X2',
+                                            'Campionato': nome_lega_match,
+                                            'Campionato_HTML': flag_card_html,
+                                            'Partita': match_name,
+                                            'Partita_HTML': match_html_card,
+                                            'Mercato Consigliato': f"🏆 1 FISSO ({casa})",
+                                            'Proiezione WebApp': f"Prob. Calibrata: {prob_blend_1:.1f}%",
+                                            'Analisi_Avversario': f"Quota Fair Reale: <b>{q_fair_1:.2f}</b>",
+                                            'Stato_Difesa': "🟢 Favorita Solida (Casa)",
+                                            'Proiezione_Finale': f"{prob_blend_1:.1f}%",
+                                            'Spia_Tattica': spia_1x2,
+                                            'Linea Eplay24': '-',
+                                            'Quota Eplay24': f"{q_1:.2f}",
+                                            'Efficienza': edge_1,
+                                            'Semafori': n_sem,
+                                            'Semafori_HTML': str_sem,
+                                            'Contro_Muro': False,
+                                            'Score_Scelta': (n_sem * 15) + (edge_1 * 1.8) - (10 if is_coppe_c else 0)
+                                        })
                                         
-                                        if prob_blend_1 >= 52.0 and edge_1 >= 3.0:
-                                            chk_m = edge_1 >= 5.5
-                                            chk_d = (lmbda_1 - lmbda_2) >= 0.45
-                                            chk_q = 1.65 <= q_1 <= 2.15
-                                            n_sem = int(chk_m) + int(chk_d) + int(chk_q)
-                                            str_sem = f"{'🟢' if chk_m else '🟡'}Margine &nbsp;{'🟢' if chk_d else '🟡'}Divario xG &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
-                                            risultati_value.append({
-                                                'Tipo_Mercato': '1X2',
-                                                'Campionato': nome_lega_match,
-                                                'Campionato_HTML': flag_card_html,
-                                                'Partita': match_name,
-                                                'Partita_HTML': match_html_card,
-                                                'Mercato Consigliato': f"🏆 1 FISSO ({casa})",
-                                                'Proiezione WebApp': f"Prob. Calibrata: {prob_blend_1:.1f}%",
-                                                'Analisi_Avversario': f"Quota Fair Reale: <b>{q_fair_1:.2f}</b>",
-                                                'Stato_Difesa': "🟢 Favorita Solida (Casa)",
-                                                'Proiezione_Finale': f"{prob_blend_1:.1f}%",
-                                                'Spia_Tattica': "🎯 Esito Finale Validato",
-                                                'Linea Eplay24': '-',
-                                                'Quota Eplay24': f"{q_1:.2f}",
-                                                'Efficienza': edge_1,
-                                                'Semafori': n_sem,
-                                                'Semafori_HTML': str_sem,
-                                                'Contro_Muro': False,
-                                                'Score_Scelta': (n_sem * 15) + (edge_1 * 1.8)
-                                            })
-                                            
-                                    if not pd.isna(q_2) and 1.55 <= q_2 <= 2.25:
-                                        prob_book_2 = (100 / q_2) * 0.95
-                                        prob_blend_2 = (p_2_pura * 0.65) + (prob_book_2 * 0.35)
-                                        q_fair_2 = 100 / prob_blend_2 if prob_blend_2 > 0 else 99.0
-                                        edge_2 = prob_blend_2 - (100 / q_2)
-                                        
-                                        if prob_blend_2 >= 54.0 and edge_2 >= 3.0:
-                                            chk_m = edge_2 >= 5.5
-                                            chk_d = (lmbda_2 - lmbda_1) >= 0.45
-                                            chk_q = 1.65 <= q_2 <= 2.15
-                                            n_sem = int(chk_m) + int(chk_d) + int(chk_q)
-                                            str_sem = f"{'🟢' if chk_m else '🟡'}Margine &nbsp;{'🟢' if chk_d else '🟡'}Divario xG &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
-                                            risultati_value.append({
-                                                'Tipo_Mercato': '1X2',
-                                                'Campionato': nome_lega_match,
-                                                'Campionato_HTML': flag_card_html,
-                                                'Partita': match_name,
-                                                'Partita_HTML': match_html_card,
-                                                'Mercato Consigliato': f"🏆 2 FISSO ({trasf})",
-                                                'Proiezione WebApp': f"Prob. Calibrata: {prob_blend_2:.1f}%",
-                                                'Analisi_Avversario': f"Quota Fair Reale: <b>{q_fair_2:.2f}</b>",
-                                                'Stato_Difesa': "🟢 Favorita Solida (Ospite)",
-                                                'Proiezione_Finale': f"{prob_blend_2:.1f}%",
-                                                'Spia_Tattica': "🎯 Esito Finale Validato",
-                                                'Linea Eplay24': '-',
-                                                'Quota Eplay24': f"{q_2:.2f}",
-                                                'Efficienza': edge_2,
-                                                'Semafori': n_sem,
-                                                'Semafori_HTML': str_sem,
-                                                'Contro_Muro': False,
-                                                'Score_Scelta': (n_sem * 15) + (edge_2 * 1.8)
-                                            })
+                                if not pd.isna(q_2) and 1.55 <= q_2 <= 2.25:
+                                    prob_book_2 = (100 / q_2) * 0.95
+                                    prob_blend_2 = (p_2_pura * 0.65) + (prob_book_2 * 0.35)
+                                    q_fair_2 = 100 / prob_blend_2 if prob_blend_2 > 0 else 99.0
+                                    edge_2 = prob_blend_2 - (100 / q_2)
+                                    
+                                    if prob_blend_2 >= 54.0 and edge_2 >= 3.0:
+                                        spia_2x = f"🎯 {dna_t['momentum_label']} • {dna_t['stato_cinismo'].split(' ')[0]} {dna_t['stato_cinismo'].split(' ')[1]}"
+                                        chk_m = edge_2 >= 5.5
+                                        chk_d = ((lmbda_2 - lmbda_1) >= 0.45) and (not is_coppe_t)
+                                        chk_q = 1.65 <= q_2 <= 2.15
+                                        n_sem = int(chk_m) + int(chk_d) + int(chk_q)
+                                        str_sem = f"{'🟢' if chk_m else '🟡'}Margine &nbsp;{'🟢' if chk_d else '🟡'}xG/Coppe &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
+                                        risultati_value.append({
+                                            'Tipo_Mercato': '1X2',
+                                            'Campionato': nome_lega_match,
+                                            'Campionato_HTML': flag_card_html,
+                                            'Partita': match_name,
+                                            'Partita_HTML': match_html_card,
+                                            'Mercato Consigliato': f"🏆 2 FISSO ({trasf})",
+                                            'Proiezione WebApp': f"Prob. Calibrata: {prob_blend_2:.1f}%",
+                                            'Analisi_Avversario': f"Quota Fair Reale: <b>{q_fair_2:.2f}</b>",
+                                            'Stato_Difesa': "🟢 Favorita Solida (Ospite)",
+                                            'Proiezione_Finale': f"{prob_blend_2:.1f}%",
+                                            'Spia_Tattica': spia_2x,
+                                            'Linea Eplay24': '-',
+                                            'Quota Eplay24': f"{q_2:.2f}",
+                                            'Efficienza': edge_2,
+                                            'Semafori': n_sem,
+                                            'Semafori_HTML': str_sem,
+                                            'Contro_Muro': False,
+                                            'Score_Scelta': (n_sem * 15) + (edge_2 * 1.8) - (10 if is_coppe_t else 0)
+                                        })
 
                                 q_gg = pd.to_numeric(row.get('Quota GG', 0), errors='coerce')
                                 if not pd.isna(q_gg) and q_gg >= 1.60:
@@ -1431,7 +1652,7 @@ if not st.session_state.pagina_impostazioni:
                                             'Score_Scelta': (n_sem * 15) + (edge_gg * 1.6)
                                         })
 
-                                def aggiungi_mercato_statistico(nome_mercato, col_linea, col_quota, val_casa, val_trasf, col_c, col_t, icona, soglia_cuscinetto):
+                                def aggiungi_mercato_statistico(nome_mercato, col_linea, col_quota, val_casa, val_trasf, col_c, col_t, icona, soglia_cuscinetto, mult_c, mult_t):
                                     linea = pd.to_numeric(row.get(col_linea, 0), errors='coerce')
                                     quota = pd.to_numeric(row.get(col_quota, 0), errors='coerce')
                                     
@@ -1442,20 +1663,27 @@ if not st.session_state.pagina_impostazioni:
                                         sub_c, _ = stima_stat_subita(df_lega_match, dati_c, 'Casa', col_t, col_c)
                                         sub_t, _ = stima_stat_subita(df_lega_match, dati_t, 'Trasferta', col_c, col_t)
                                         proiezione_difese = sub_c + sub_t
-                                        proiezione_incrociata = (proiezione_attacchi + proiezione_difese) / 2.0
+                                        
+                                        # Applica correttori Game State, Cinismo, Qualità Tiro e Coppe a entrambe le squadre
+                                        proj_casa_cal = ((val_casa + sub_t) / 2.0 if sub_t > 0 else val_casa) * mult_c
+                                        proj_trasf_cal = ((val_trasf + sub_c) / 2.0 if sub_c > 0 else val_trasf) * mult_t
+                                        proiezione_incrociata = proj_casa_cal + proj_trasf_cal
                                         
                                         media_tot_lega = proiezione_attacchi if proiezione_difese == 0 else (df_lega_match[col_c].mean() + df_lega_match[col_t].mean())
                                         contro_muro = False
                                         if proiezione_difese >= media_tot_lega * 1.05:
                                             stato_dif = "🟢 Difese Permessive"
-                                            spia = "🔥 Gara da Assedio Totale"
+                                            spia = "🔥 Assedio + Difese Permessive"
                                         elif proiezione_difese <= media_tot_lega * 0.95:
                                             stato_dif = "🔴 Difese Chiuse"
                                             spia = "🧱 Difese Chiuse (Frena Volume)"
                                             contro_muro = True
                                         else:
                                             stato_dif = "⚪ Difese Medie"
-                                            spia = "⚖️ Ritmo Regolare"
+                                            spia = "⚖️ Ritmo Calibrato IA"
+
+                                        if is_coppe_c or is_coppe_t:
+                                            spia += " • 🇪🇺 Coppe"
 
                                         scarto_reale = proiezione_incrociata - target_cassa
                                         moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
@@ -1492,7 +1720,7 @@ if not st.session_state.pagina_impostazioni:
                                                 'Score_Scelta': (n_sem * 15) + eff - (25 if contro_muro else 0)
                                             })
                                             
-                                def aggiungi_mercato_squadra(nome_mercato, col_linea, col_quota, proiezione_sq, icona, nome_squadra, nome_avv, dati_avv, ruolo_avv, col_att, col_dif, soglia_cuscinetto):
+                                def aggiungi_mercato_squadra(nome_mercato, col_linea, col_quota, proiezione_sq, icona, nome_squadra, nome_avv, dati_avv, ruolo_avv, col_att, col_dif, soglia_cuscinetto, mult_sq, lbl_gs, dna_sq, is_coppe_sq):
                                     linea = pd.to_numeric(row.get(col_linea, 0), errors='coerce')
                                     quota = pd.to_numeric(row.get(col_quota, 0), errors='coerce')
                                     
@@ -1500,16 +1728,32 @@ if not st.session_state.pagina_impostazioni:
                                         target_cassa = int(math.floor(linea)) + 1
                                         
                                         subiti_avv, stato_dif = stima_stat_subita(df_lega_match, dati_avv, ruolo_avv, col_att, col_dif)
-                                        proiezione_incrociata = (proiezione_sq + subiti_avv) / 2.0 if subiti_avv > 0 else proiezione_sq
+                                        proiezione_base = (proiezione_sq + subiti_avv) / 2.0 if subiti_avv > 0 else proiezione_sq
+                                        proiezione_incrociata = proiezione_base * mult_sq
                                         
                                         contro_muro = False
                                         if "Concede" in stato_dif:
-                                            spia = "🔥 Difesa Avv. Fragile (Alto Volume)"
+                                            spia_dif = "🔥 Difesa Fragile"
                                         elif "Solida" in stato_dif:
-                                            spia = "🧱 Difesa Avv. Solida (Frena Volume)"
+                                            spia_dif = "🧱 Difesa Solida"
                                             contro_muro = True
                                         else:
-                                            spia = "⚖️ Copione Regolare"
+                                            spia_dif = "⚖️ Difesa Media"
+
+                                        extra_dna = []
+                                        if "Gestione" in lbl_gs:
+                                            extra_dna.append("🧊 Gestione")
+                                        elif "Spinta" in lbl_gs:
+                                            extra_dna.append("🔥 Spinta")
+                                        if "Sprecona" in dna_sq['stato_cinismo']:
+                                            extra_dna.append("Sprecona")
+                                        elif "Iper-Cinica" in dna_sq['stato_cinismo']:
+                                            extra_dna.append("Cinica")
+                                        if "Corner" in nome_mercato and "Fuori" in dna_sq['stato_tiro']:
+                                            extra_dna.append("🚀 Da Fuori")
+                                        if is_coppe_sq:
+                                            extra_dna.append("🇪🇺 Coppe")
+                                        spia = spia_dif + (" • " + " ".join(extra_dna) if extra_dna else "")
 
                                         scarto_reale = proiezione_incrociata - target_cassa
                                         moltiplicatore_quota = max(0.80, min(1.25, quota / 1.80))
@@ -1519,10 +1763,10 @@ if not st.session_state.pagina_impostazioni:
                                             eff = eff * 0.65
                                             
                                         chk_m = scarto_reale >= soglia_cuscinetto
-                                        chk_d = not contro_muro
+                                        chk_d = (not contro_muro) and ("Gestione" not in lbl_gs)
                                         chk_q = 1.65 <= quota <= 2.15
                                         n_sem = int(chk_m) + int(chk_d) + int(chk_q)
-                                        str_sem = f"{'🟢' if chk_m else '🟡'}Cuscinetto(+{scarto_reale:.1f}) &nbsp;{'🟢' if chk_d else '🔴'}Dif.Avv &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
+                                        str_sem = f"{'🟢' if chk_m else '🟡'}Cuscinetto(+{scarto_reale:.1f}) &nbsp;{'🟢' if chk_d else '🔴'}Dif/GS &nbsp;{'🟢' if chk_q else '🟡'}Quota ({n_sem}/3)"
                                         
                                         if scarto_reale > 0 and eff > 0:
                                             risultati_value.append({
@@ -1546,25 +1790,26 @@ if not st.session_state.pagina_impostazioni:
                                                 'Score_Scelta': (n_sem * 15) + eff - (25 if contro_muro else 0)
                                             })
 
-                                tiri_tot_c = dati_c.get('Tiri totali Casa', 0)
-                                tiri_tot_t = dati_t.get('Tiri totali Trasferta', 0)
-                                aggiungi_mercato_statistico('Tiri Totali', 'Linea Over Tiri', 'Quota Over Tiri', tiri_tot_c, tiri_tot_t, 'Tiri totali Casa', 'Tiri totali Trasferta', '👟', 1.4)
-                                aggiungi_mercato_squadra('Tiri Totali', 'Linea Tiri Casa', 'Quota Tiri Casa', tiri_tot_c, '👟', casa, trasf, dati_t, 'Trasferta', 'Tiri totali Casa', 'Tiri totali Trasferta', 1.0)
-                                aggiungi_mercato_squadra('Tiri Totali', 'Linea Tiri Trasferta', 'Quota Tiri Trasferta', tiri_tot_t, '👟', trasf, casa, dati_c, 'Casa', 'Tiri totali Trasferta', 'Tiri totali Casa', 1.0)
+                                m_tt_c = max(0.80, min(1.15, m_gs_c * dna_c['mult_cin_stat'] * m_ec_c))
+                                m_tt_t = max(0.80, min(1.15, m_gs_t * dna_t['mult_cin_stat'] * m_ec_t))
+                                m_tp_c = max(0.82, min(1.12, m_gs_c * m_ec_c))
+                                m_tp_t = max(0.82, min(1.12, m_gs_t * m_ec_t))
+                                m_cor_c = max(0.80, min(1.16, m_gs_c * dna_c['mult_cin_stat'] * dna_c['mult_cor_tiro'] * m_ec_c))
+                                m_cor_t = max(0.80, min(1.16, m_gs_t * dna_t['mult_cin_stat'] * dna_t['mult_cor_tiro'] * m_ec_t))
+                                m_fal_c = 1.05 if is_coppe_c else 1.00
+                                m_fal_t = 1.05 if is_coppe_t else 1.00
 
-                                porta_c = dati_c.get('Tiri in porta Casa', 0)
-                                porta_t = dati_t.get('Tiri in porta Trasferta', 0)
-                                aggiungi_mercato_statistico('Tiri in Porta', 'Linea Over Tiri Porta', 'Quota Over Tiri Porta', porta_c, porta_t, 'Tiri in porta Casa', 'Tiri in porta Trasferta', '🥅', 0.8)
+                                aggiungi_mercato_statistico('Tiri Totali', 'Linea Over Tiri', 'Quota Over Tiri', tiri_tot_c, tiri_tot_t, 'Tiri totali Casa', 'Tiri totali Trasferta', '👟', 1.4, m_tt_c, m_tt_t)
+                                aggiungi_mercato_squadra('Tiri Totali', 'Linea Tiri Casa', 'Quota Tiri Casa', tiri_tot_c, '👟', casa, trasf, dati_t, 'Trasferta', 'Tiri totali Casa', 'Tiri totali Trasferta', 1.0, m_tt_c, lbl_gs_c, dna_c, is_coppe_c)
+                                aggiungi_mercato_squadra('Tiri Totali', 'Linea Tiri Trasferta', 'Quota Tiri Trasferta', tiri_tot_t, '👟', trasf, casa, dati_c, 'Casa', 'Tiri totali Trasferta', 'Tiri totali Casa', 1.0, m_tt_t, lbl_gs_t, dna_t, is_coppe_t)
 
-                                corner_c = dati_c.get('Corner Casa', 0)
-                                corner_t = dati_t.get('Corner Trasferta', 0)
-                                aggiungi_mercato_statistico('Corner', 'Linea Over Corner', 'Quota Over Corner', corner_c, corner_t, 'Corner Casa', 'Corner Trasferta', '🚩', 0.8)
-                                aggiungi_mercato_squadra('Corner', 'Linea Corner Casa', 'Quota Corner Casa', corner_c, '🚩', casa, trasf, dati_t, 'Trasferta', 'Corner Casa', 'Corner Trasferta', 0.6)
-                                aggiungi_mercato_squadra('Corner', 'Linea Corner Trasferta', 'Quota Corner Trasferta', corner_t, '🚩', trasf, casa, dati_c, 'Casa', 'Corner Trasferta', 'Corner Casa', 0.6)
+                                aggiungi_mercato_statistico('Tiri in Porta', 'Linea Over Tiri Porta', 'Quota Over Tiri Porta', porta_c, porta_t, 'Tiri in porta Casa', 'Tiri in porta Trasferta', '🥅', 0.8, m_tp_c, m_tp_t)
 
-                                falli_c = dati_c.get('Falli Commessi Casa', 0)
-                                falli_t = dati_t.get('Falli Commessi Trasferta', 0)
-                                aggiungi_mercato_statistico('Falli', 'Linea Over Falli', 'Quota Over Falli', falli_c, falli_t, 'Falli Commessi Casa', 'Falli Commessi Trasferta', '🛑', 1.2)
+                                aggiungi_mercato_statistico('Corner', 'Linea Over Corner', 'Quota Over Corner', corner_c, corner_t, 'Corner Casa', 'Corner Trasferta', '🚩', 0.8, m_cor_c, m_cor_t)
+                                aggiungi_mercato_squadra('Corner', 'Linea Corner Casa', 'Quota Corner Casa', corner_c, '🚩', casa, trasf, dati_t, 'Trasferta', 'Corner Casa', 'Corner Trasferta', 0.6, m_cor_c, lbl_gs_c, dna_c, is_coppe_c)
+                                aggiungi_mercato_squadra('Corner', 'Linea Corner Trasferta', 'Quota Corner Trasferta', corner_t, '🚩', trasf, casa, dati_c, 'Casa', 'Corner Trasferta', 'Corner Casa', 0.6, m_cor_t, lbl_gs_t, dna_t, is_coppe_t)
+
+                                aggiungi_mercato_statistico('Falli', 'Linea Over Falli', 'Quota Over Falli', falli_c, falli_t, 'Falli Commessi Casa', 'Falli Commessi Trasferta', '🛑', 1.2, m_fal_c, m_fal_t)
                             
                             if len(risultati_value) > 0:
                                 df_value = pd.DataFrame(risultati_value)
@@ -1590,7 +1835,7 @@ if not st.session_state.pagina_impostazioni:
                                 if df_value.empty:
                                     st.warning(f"😔 Nessuna giocata supera i filtri di sicurezza selezionati.")
                                 else:
-                                    st.success(f"✅ Trovate **{len(df_value)}** Giocate filtrate col Sistema Salva-Cassa!")
+                                    st.success(f"✅ Trovate **{len(df_value)}** Giocate filtrate col Sistema Salva-Cassa Pro!")
                                     
                                     counts = df_value['Partita'].value_counts()
                                     partite_ripetute = counts[counts > 1].index.tolist()
@@ -1662,7 +1907,7 @@ if not st.session_state.pagina_impostazioni:
                                                 <p style="margin: 0; font-size: 0.75em; color: #aaa;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b style="color:#fff;">{bet['Linea Eplay24']}</b></p>
                                             </div>
                                             <div style="flex: 1.7; text-align: center; border-left: 1px solid rgba(255,255,255,0.1); padding: 0 10px;">
-                                                <p style="margin: 0; font-size: 0.68em; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Checklist Salva-Cassa</p>
+                                                <p style="margin: 0; font-size: 0.68em; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Checklist Salva-Cassa Pro</p>
                                                 <p style="margin: 3px 0; font-size: 0.74em; color: #eee; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 4px;">{sem_html}</p>
                                                 <p style="margin: 2px 0; font-size: 0.72em; color: #00cc66;">{bet['Spia_Tattica']} | Reale: <b style="font-family: JetBrains Mono, monospace;">{bet['Proiezione_Finale']}</b></p>
                                             </div>
