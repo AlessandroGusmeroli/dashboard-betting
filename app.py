@@ -550,20 +550,68 @@ def calcola_game_state(p_win, p_lose):
         return 1.04, "⚡ Spinta Rincorsa (+4%)"
     return 1.00, "⚖️ Game State Neutro"
 
-def calcola_poisson_match(xg_att_1, xg_att_2, xga_def_1, xga_def_2, tp_1, tp_2, media_tp_1, media_tp_2, dna_1, dna_2, coppe_1=False, coppe_2=False, xgot_1=0.0, xgot_2=0.0):
-    """Calcola xG calibrati con xGOT (se presente in Serie A), Tiri in Porta, Momentum Ultime 5 e Affaticamento Coppe + distribuzione 1X2."""
-    att_eff_1 = (xg_att_1 * 0.70 + xgot_1 * 0.30) if (xgot_1 and xgot_1 > 0) else xg_att_1
-    att_eff_2 = (xg_att_2 * 0.70 + xgot_2 * 0.30) if (xgot_2 and xgot_2 > 0) else xg_att_2
+def calcola_poisson_match(
+    xg_att_1, xg_att_2, xga_def_1, xga_def_2,
+    tp_1, tp_2, media_tp_1, media_tp_2,
+    dna_1, dna_2, coppe_1=False, coppe_2=False,
+    xgot_1=0.0, xgot_2=0.0,
+    media_xga_1=1.25, media_xga_2=1.25,
+    par_real_1=0.0, par_real_2=0.0,
+    media_par_1=3.0, media_par_2=3.0
+):
+    """
+    Motore Poisson + Dixon-Coles calibrato con:
+    - Blend offensivo 55% xG + 45% xGOT (quando disponibile)
+    - Modello moltiplicativo Attacco x Vulnerabilità Difensiva (preserva 0-0, 3-2, 4-1)
+    - Fattore Muro Portiere (Parate reali vs qualità xGOT avversaria)
+    - Correzione Dixon-Coles per punteggi bloccati (0-0 / 1-1) vs gare aperte
+    """
+    # 1. Forza offensiva potenziata da xGOT
+    has_xgot_1 = xgot_1 is not None and float(xgot_1) > 0
+    has_xgot_2 = xgot_2 is not None and float(xgot_2) > 0
 
-    xg_base_1 = (att_eff_1 + xga_def_2) / 2.0
-    xg_base_2 = (att_eff_2 + xga_def_1) / 2.0
+    att_eff_1 = (xg_att_1 * 0.55 + float(xgot_1) * 0.45) if has_xgot_1 else xg_att_1
+    att_eff_2 = (xg_att_2 * 0.55 + float(xgot_2) * 0.45) if has_xgot_2 else xg_att_2
+
+    # 2. Modello moltiplicativo Attacco x Difesa (preserva punteggi alti 3-2 / 4-1 e bassi 0-0)
+    m_xga_1 = media_xga_1 if (media_xga_1 and media_xga_1 > 0) else 1.25
+    m_xga_2 = media_xga_2 if (media_xga_2 and media_xga_2 > 0) else 1.25
+    ratio_dif_2 = max(0.55, min(1.55, xga_def_2 / m_xga_2))
+    ratio_dif_1 = max(0.55, min(1.55, xga_def_1 / m_xga_1))
+
+    xg_base_1 = att_eff_1 * (0.35 + 0.65 * ratio_dif_2)
+    xg_base_2 = att_eff_2 * (0.35 + 0.65 * ratio_dif_1)
+
+    # 3. Qualità conclusione xGOT vs Muro Portiere (Parate Reali)
+    mult_qual_1 = 1.0
+    if has_xgot_1 and xg_att_1 > 0:
+        if float(xgot_1) >= xg_att_1 * 1.12:
+            mult_qual_1 *= 1.06  # Tiri all'incrocio -> più gol
+        elif float(xgot_1) <= xg_att_1 * 0.88:
+            mult_qual_1 *= 0.94  # Tiri centrali/morbidi -> meno gol
+    if par_real_2 and float(par_real_2) > 0 and media_par_2 and media_par_2 > 0:
+        ratio_gk_2 = float(par_real_2) / float(media_par_2)
+        if ratio_gk_2 >= 1.12 and (not has_xgot_1 or float(xgot_1) <= xg_att_1 * 1.05):
+            mult_qual_1 *= 0.93  # Portiere ospite in forma -> frena gol casa
+
+    mult_qual_2 = 1.0
+    if has_xgot_2 and xg_att_2 > 0:
+        if float(xgot_2) >= xg_att_2 * 1.12:
+            mult_qual_2 *= 1.06
+        elif float(xgot_2) <= xg_att_2 * 0.88:
+            mult_qual_2 *= 0.94
+    if par_real_1 and float(par_real_1) > 0 and media_par_1 and media_par_1 > 0:
+        ratio_gk_1 = float(par_real_1) / float(media_par_1)
+        if ratio_gk_1 >= 1.12 and (not has_xgot_2 or float(xgot_2) <= xg_att_2 * 1.05):
+            mult_qual_2 *= 0.93  # Portiere casa in forma -> frena gol ospite
 
     fattore_tp_1 = max(0.85, min(1.18, tp_1 / media_tp_1)) if media_tp_1 > 0 else 1.0
     fattore_tp_2 = max(0.85, min(1.18, tp_2 / media_tp_2)) if media_tp_2 > 0 else 1.0
 
-    gol_base_1 = ((xg_base_1 * 0.85) + (xg_base_1 * fattore_tp_1 * 0.15)) * 1.06
-    gol_base_2 = ((xg_base_2 * 0.85) + (xg_base_2 * fattore_tp_2 * 0.15)) * 0.94
+    gol_base_1 = ((xg_base_1 * 0.85) + (xg_base_1 * fattore_tp_1 * 0.15)) * mult_qual_1 * 1.05
+    gol_base_2 = ((xg_base_2 * 0.85) + (xg_base_2 * fattore_tp_2 * 0.15)) * mult_qual_2 * 0.95
 
+    # 4. Momentum Ultime 5 Partite
     gol_sq1 = gol_base_1
     gol_sq2 = gol_base_2
     if dna_1['n_5'] >= 3 and dna_2['n_5'] >= 3:
@@ -574,6 +622,7 @@ def calcola_poisson_match(xg_att_1, xg_att_2, xga_def_1, xga_def_2, tp_1, tp_2, 
         gol_sq1 = max(gol_base_1 * 0.85, min(gol_base_1 * 1.15, gol_blend_1))
         gol_sq2 = max(gol_base_2 * 0.85, min(gol_base_2 * 1.15, gol_blend_2))
 
+    # 5. Affaticamento Coppe Europee
     if coppe_1:
         gol_sq1 *= 0.90
         gol_sq2 *= 1.05
@@ -581,27 +630,51 @@ def calcola_poisson_match(xg_att_1, xg_att_2, xga_def_1, xga_def_2, tp_1, tp_2, 
         gol_sq2 *= 0.90
         gol_sq1 *= 1.05
 
-    l1 = max(0.1, gol_sq1)
-    l2 = max(0.1, gol_sq2)
-    probs_1 = [(math.exp(-l1) * (l1**k)) / math.factorial(k) for k in range(7)]
-    probs_2 = [(math.exp(-l2) * (l2**k)) / math.factorial(k) for k in range(7)]
+    l1 = max(0.12, min(4.80, gol_sq1))
+    l2 = max(0.12, min(4.80, gol_sq2))
+    tot_lambda = l1 + l2
+
+    # 6. Matrice Poisson 0..7 + Correzione Dixon-Coles adattiva
+    probs_1 = [(math.exp(-l1) * (l1**k)) / math.factorial(k) for k in range(8)]
+    probs_2 = [(math.exp(-l2) * (l2**k)) / math.factorial(k) for k in range(8)]
+
+    if tot_lambda <= 2.15:
+        rho = -0.14  # Gara chiusa: valorizza 0-0 e 1-1
+    elif tot_lambda >= 3.15:
+        rho = -0.04  # Gara aperta: lascia spazio a 3-2, 4-1, 3-1, 2-2
+    else:
+        rho = -0.09
+
+    matrice = {}
+    tot_mat = 0.0
+    for i in range(8):
+        for j in range(8):
+            p_ij = probs_1[i] * probs_2[j]
+            if i == 0 and j == 0:
+                tau = max(0.10, 1.0 - (l1 * l2 * rho))
+            elif i == 0 and j == 1:
+                tau = max(0.10, 1.0 + (l1 * rho))
+            elif i == 1 and j == 0:
+                tau = max(0.10, 1.0 + (l2 * rho))
+            elif i == 1 and j == 1:
+                tau = max(0.10, 1.0 - rho)
+            else:
+                tau = 1.0
+            val = p_ij * tau
+            matrice[(i, j)] = val
+            tot_mat += val
 
     p_1, p_x, p_2 = 0.0, 0.0, 0.0
     risultati_esatti = []
-    for i in range(7):
-        for j in range(7):
-            p_ij = probs_1[i] * probs_2[j]
-            if i > j: p_1 += p_ij
-            elif i == j: p_x += p_ij
-            else: p_2 += p_ij
-            if i <= 4 and j <= 4:
-                risultati_esatti.append((f"{i}-{j}", p_ij * 100))
+    for (i, j), val in matrice.items():
+        p_norm = (val / tot_mat) * 100.0 if tot_mat > 0 else 0.0
+        if i > j: p_1 += p_norm
+        elif i == j: p_x += p_norm
+        else: p_2 += p_norm
+        if i <= 5 and j <= 5:
+            risultati_esatti.append((f"{i}-{j}", p_norm, i, j))
 
-    tot_p = p_1 + p_x + p_2
-    if tot_p > 0:
-        p_1, p_x, p_2 = (p_1 / tot_p) * 100, (p_x / tot_p) * 100, (p_2 / tot_p) * 100
-
-    risultati_esatti.sort(key=lambda x: x[1])
+    risultati_esatti.sort(key=lambda x: x[1], reverse=True)
     return l1, l2, p_1, p_x, p_2, risultati_esatti
 
 def calcola_parate_portiere(parate_reali, proj_tp_avv, xga_dif, media_xga_lega, dna_avv):
@@ -696,11 +769,11 @@ def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00e676
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <strong style="color: #fff; font-size: 1.1em;">🔥 OVER 2.5</strong>
                 <div style="text-align: right;">
-                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222831; padding: 3px 8px; border-radius: 6px;">{testo_q_over}</span>
+                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222b36; padding: 3px 8px; border-radius: 6px;">{testo_q_over}</span>
                     <span style="font-weight:800; font-size: 1.1em; color: {color_accent}; font-family: 'JetBrains Mono', monospace;">{perc_over:.1f}%</span>
                 </div>
             </div>
-            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222831;">
+            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222b36;">
                 <div style="background: linear-gradient(90deg, #123c2f, {color_accent}); border-radius: 12px; width: {perc_over}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
             </div>
         </div>
@@ -708,11 +781,11 @@ def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00e676
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <strong style="color: #fff; font-size: 1.1em;">⚽ GOAL (GG)</strong>
                 <div style="text-align: right;">
-                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222831; padding: 3px 8px; border-radius: 6px;">{testo_q_goal}</span>
+                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222b36; padding: 3px 8px; border-radius: 6px;">{testo_q_goal}</span>
                     <span style="font-weight:800; font-size: 1.1em; color: {color_accent}; font-family: 'JetBrains Mono', monospace;">{perc_goal:.1f}%</span>
                 </div>
             </div>
-            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222831;">
+            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222b36;">
                 <div style="background: linear-gradient(90deg, #123c2f, {color_accent}); border-radius: 12px; width: {perc_goal}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
             </div>
         </div>
@@ -866,9 +939,9 @@ if not st.session_state.pagina_impostazioni:
                     fig_radar.update_layout(
                         template="plotly_dark",
                         polar=dict(
-                            bgcolor='rgba(19, 23, 29, 0.7)',
+                            bgcolor='rgba(19, 25, 32, 0.7)',
                             radialaxis=dict(visible=False, range=[0, 100]),
-                            angularaxis=dict(gridcolor='#222831', linecolor='#2b313a')
+                            angularaxis=dict(gridcolor='#222b36', linecolor='#26313f')
                         ),
                         showlegend=True,
                         paper_bgcolor='rgba(0,0,0,0)',
@@ -898,7 +971,7 @@ if not st.session_state.pagina_impostazioni:
                     else:
                         lista_stats = [(col, dati_sq1[col], dati_sq2[col]) for col in colonne_numeriche]
                     
-                    html_content = '<div style="background: #13171d; border: 1px solid #222831; border-radius: 14px; padding: 28px; color: #e5e7eb;">'
+                    html_content = '<div style="background: #131920; border: 1px solid #222b36; border-radius: 14px; padding: 28px; color: #e5e7eb;">'
                     for nome_stat, v1, v2 in lista_stats:
                         tot = v1 + v2
                         p1 = 50 if tot == 0 else (v1 / tot) * 100
@@ -912,7 +985,7 @@ if not st.session_state.pagina_impostazioni:
                                 <span style="width: 40%; text-align: center; font-size: 0.92em; text-transform: uppercase; letter-spacing: 1px; color: #d1d5db;">{nome_stat}</span>
                                 <span style="color: #ff4b4b; width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 1.1em;">{v2_str}</span>
                             </div>
-                            <div style="display: flex; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; background: #0d1014; border: 1px solid #222831;">
+                            <div style="display: flex; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; background: #0d1014; border: 1px solid #222b36;">
                                 <div style="width: {p1}%; background-color: #00e676; box-shadow: 0 0 10px rgba(0,230,118,0.45);"></div>
                                 <div style="width: {p2}%; background-color: #ff4b4b; box-shadow: 0 0 10px rgba(255,75,75,0.45);"></div>
                             </div>
@@ -924,7 +997,7 @@ if not st.session_state.pagina_impostazioni:
                 with tab_pronostici_ia:
                     mod_testo = "Dati Reali (Casa vs Trasferta)" if simula_reale else "Media Stagionale Globale"
                     st.markdown("### 🧠 Centrale Pronostici IA: 1X2, Multigol & Bussola Tattica")
-                    st.markdown(f"<p style='color:#9ca3af; font-size:0.9em;'>Motore calibrato con <b>Poisson + xGOT + Parate Reali + Forma 5G + Game State + Cinismo + Coppe</b> (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='color:#9ca3af; font-size:0.9em;'>Motore calibrato con <b>Poisson Dixon-Coles + xGOT + Parate Reali + Forma 5G + Game State + Cinismo + Coppe</b> (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
 
                     xg_stag_1 = (dati_sq1.get('xG Casa', 0) + dati_sq1.get('xG Trasferta', 0)) / 2.0
                     xg_stag_2 = (dati_sq2.get('xG Casa', 0) + dati_sq2.get('xG Trasferta', 0)) / 2.0
@@ -950,6 +1023,10 @@ if not st.session_state.pagina_impostazioni:
                         media_tp_2 = df_selezionato['Tiri in porta Trasferta'].mean() if 'Tiri in porta Trasferta' in df_selezionato.columns else 3.6
                         media_xga_1 = df_selezionato['xGA Casa'].mean() if 'xGA Casa' in df_selezionato.columns else 1.25
                         media_xga_2 = df_selezionato['xGA Trasferta'].mean() if 'xGA Trasferta' in df_selezionato.columns else 1.25
+                        p_c_nz = df_selezionato['Parate Casa'][df_selezionato['Parate Casa'] > 0] if has_parate_col else pd.Series(dtype=float)
+                        p_t_nz = df_selezionato['Parate Trasferta'][df_selezionato['Parate Trasferta'] > 0] if has_parate_col else pd.Series(dtype=float)
+                        media_par_1 = float(p_c_nz.mean()) if not p_c_nz.empty else 3.0
+                        media_par_2 = float(p_t_nz.mean()) if not p_t_nz.empty else 3.0
                     else:
                         xg_att_1 = xg_stag_1
                         xg_att_2 = xg_stag_2
@@ -971,13 +1048,18 @@ if not st.session_state.pagina_impostazioni:
                         media_tp_2 = 4.0
                         media_xga_1 = 1.25
                         media_xga_2 = 1.25
+                        media_par_1 = 3.0
+                        media_par_2 = 3.0
 
                     dna_1 = analizza_dna_squadra(squadra_1, df_partite, xg_att_1, tt_1, xg_stag_1, xgot_1)
                     dna_2 = analizza_dna_squadra(squadra_2, df_partite, xg_att_2, tt_2, xg_stag_2, xgot_2)
 
                     l1, l2, p_1, p_x, p_2, risultati_esatti = calcola_poisson_match(
-                        xg_att_1, xg_att_2, xga_def_1, xga_def_2, tp_1, tp_2, media_tp_1, media_tp_2,
-                        dna_1, dna_2, coppe_casa, coppe_ospite, xgot_1, xgot_2
+                        xg_att_1, xg_att_2, xga_def_1, xga_def_2,
+                        tp_1, tp_2, media_tp_1, media_tp_2,
+                        dna_1, dna_2, coppe_casa, coppe_ospite,
+                        xgot_1, xgot_2, media_xga_1, media_xga_2,
+                        par_real_1, par_real_2, media_par_1, media_par_2
                     )
                     xg_totali_match = l1 + l2
 
@@ -991,7 +1073,29 @@ if not st.session_state.pagina_impostazioni:
                     qf_2 = 100 / p_2 if p_2 > 0 else 99.0
                     qf_1x = 100 / p_1x if p_1x > 0 else 99.0
                     qf_x2 = 100 / p_x2 if p_x2 > 0 else 99.0
-                    top_2_ris = f"{risultati_esatti[-1][0]} ({risultati_esatti[-1][1]:.1f}%)  |  {risultati_esatti[-2][0]} ({risultati_esatti[-2][1]:.1f}%)"
+
+                    # Estrazione Top 3 Risultati Esatti + Scenario Estremo (0-0 oppure Goleada 3-2 / 4-1)
+                    top_3_badges = ""
+                    for idx_r, (ris_lbl, ris_p, _, _) in enumerate(risultati_esatti[:3]):
+                        bordo_r = "#00e676" if idx_r == 0 else "#2b3646"
+                        col_r = "#00e676" if idx_r == 0 else "#e5e7eb"
+                        qf_r = (100.0 / ris_p) if ris_p > 0 else 99.0
+                        top_3_badges += f"<span style='background:#0d1014; border:1px solid {bordo_r}; padding:4px 10px; border-radius:7px; font-family:JetBrains Mono, monospace; font-size:0.84em; margin-right:8px; display:inline-block;'><b style='color:{col_r};'>{ris_lbl}</b> <span style='color:#9ca3af;'>({ris_p:.1f}% • Fair {qf_r:.1f})</span></span>"
+
+                    # Calcolo Scenario Estremo mirato su xGOT/xG
+                    p_00 = next((p for lbl, p, _, _ in risultati_esatti if lbl == "0-0"), 0.0)
+                    goleade = [(lbl, p) for lbl, p, gi, gj in risultati_esatti if (gi + gj) >= 4]
+                    best_goleada = goleade[0] if goleade else ("3-1", 0.0)
+
+                    if xg_totali_match >= 2.95:
+                        qf_est = (100.0 / best_goleada[1]) if best_goleada[1] > 0 else 99.0
+                        badge_estremo = f"<span style='background:rgba(255,75,75,0.12); border:1px solid rgba(255,75,75,0.4); color:#ff6b6b; padding:4px 10px; border-radius:7px; font-family:JetBrains Mono, monospace; font-size:0.82em; display:inline-block;'>🔥 Gara Aperta (4+ Gol): <b>{best_goleada[0]}</b> ({best_goleada[1]:.1f}% • Fair {qf_est:.1f})</span>"
+                    elif xg_totali_match <= 2.15 or p_00 >= 11.0:
+                        qf_00 = (100.0 / p_00) if p_00 > 0 else 99.0
+                        badge_estremo = f"<span style='background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.4); color:#38bdf8; padding:4px 10px; border-radius:7px; font-family:JetBrains Mono, monospace; font-size:0.82em; display:inline-block;'>🧊 Allerta Blocco: <b>0-0</b> ({p_00:.1f}% • Fair {qf_00:.1f})</span>"
+                    else:
+                        qf_est = (100.0 / best_goleada[1]) if best_goleada[1] > 0 else 99.0
+                        badge_estremo = f"<span style='background:#161c24; border:1px solid #2b3646; color:#9ca3af; padding:4px 10px; border-radius:7px; font-family:JetBrains Mono, monospace; font-size:0.82em; display:inline-block;'>⚡ Alternativa 4+ Gol: <b style='color:#e5e7eb;'>{best_goleada[0]}</b> ({best_goleada[1]:.1f}%) | 0-0 ({p_00:.1f}%)</span>"
 
                     if p_1 >= 56:
                         esito_consigliato = f"1 FISSO ({squadra_1})"
@@ -1017,7 +1121,7 @@ if not st.session_state.pagina_impostazioni:
                             <div>
                                 <p style="margin:0; font-size:0.75em; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Esito Principale Consigliato dall'IA</p>
                                 <h2 style="margin: 4px 0; color: {col_esito} !important; font-family: 'JetBrains Mono', monospace;">🏆 {esito_consigliato}</h2>
-                                <p style="margin:0; font-size:0.85em; color:#d1d5db;">Probabilità Stimata: <b>{prob_esito:.1f}%</b> | Quota Fair: <b>{qf_esito:.2f}</b> &nbsp;•&nbsp; 🎯 Risultati più probabili: <b>{top_2_ris}</b></p>
+                                <p style="margin:0; font-size:0.85em; color:#d1d5db;">Probabilità Stimata: <b>{prob_esito:.1f}%</b> | Quota Fair: <b>{qf_esito:.2f}</b></p>
                             </div>
                             <div style="display: flex; gap: 15px; margin-top: 10px;">
                                 <div style="background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.3); padding: 8px 14px; border-radius: 10px; text-align: center;">
@@ -1047,6 +1151,13 @@ if not st.session_state.pagina_impostazioni:
                             <span>Gol Totali Attesi nel Match: <b style="color:#00e676;">{xg_totali_match:.2f} xG</b></span>
                             <span>Doppia Chance X2: <b style="color:#fff;">{p_x2:.1f}%</b> (Fair {qf_x2:.2f})</span>
                         </div>
+                        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #222b36; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <span style="font-size:0.76em; color:#9ca3af; text-transform:uppercase; letter-spacing:0.6px; margin-right:8px;">🎯 Top 3 Risultati Esatti:</span>
+                                {top_3_badges}
+                            </div>
+                            <div>{badge_estremo}</div>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1061,7 +1172,7 @@ if not st.session_state.pagina_impostazioni:
                         <div class="glass-box" style="border-left: 4px solid #00e676; padding: 14px 16px; margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                 <b style="color:#00e676; font-size:0.95em;">🏠 {stemma_sq1}{squadra_1}</b>
-                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222831; padding:2px 8px; border-radius:6px;">{dna_1['momentum_label']} • {coppe_txt_1}</span>
+                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222b36; padding:2px 8px; border-radius:6px;">{dna_1['momentum_label']} • {coppe_txt_1}</span>
                             </div>
                             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
                                 <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
@@ -1088,7 +1199,7 @@ if not st.session_state.pagina_impostazioni:
                         <div class="glass-box" style="border-left: 4px solid #ff4b4b; padding: 14px 16px; margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                 <b style="color:#ff4b4b; font-size:0.95em;">✈️ {stemma_sq2}{squadra_2}</b>
-                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222831; padding:2px 8px; border-radius:6px;">{dna_2['momentum_label']} • {coppe_txt_2}</span>
+                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222b36; padding:2px 8px; border-radius:6px;">{dna_2['momentum_label']} • {coppe_txt_2}</span>
                             </div>
                             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
                                 <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
@@ -1284,7 +1395,7 @@ if not st.session_state.pagina_impostazioni:
                     lt_cor, tgt_cor, m_cor, col_l_cor = calcola_linea_statistica(proj_tot_cor, 1.0, stato_tot_cor)
 
                     st.markdown(f"""
-                    <div class="glass-box" style="padding: 16px; border: 1px solid #262e39;">
+                    <div class="glass-box" style="padding: 16px; border: 1px solid #26313f;">
                         <p style="margin:0 0 10px 0; font-size:0.78em; color:#9ca3af; text-transform:uppercase; letter-spacing:1px;">🌐 Proiezione Linee Totali Match (Casa + Ospite)</p>
                         <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
                             <div style="flex:1; min-width:180px; background:#0d1014; border:1px solid #1e232a; padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tt};">
@@ -1561,8 +1672,8 @@ if not st.session_state.pagina_impostazioni:
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
                             font=dict(family='Outfit', color='#e5e7eb'),
-                            yaxis=dict(gridcolor='#1d2229', zerolinecolor='#2b313a'),
-                            xaxis=dict(showgrid=False, linecolor='#2b313a')
+                            yaxis=dict(gridcolor='#1d242e', zerolinecolor='#26313f'),
+                            xaxis=dict(showgrid=False, linecolor='#26313f')
                         )
                         st.plotly_chart(fig_dinamico, use_container_width=True)
                         
@@ -1571,7 +1682,7 @@ if not st.session_state.pagina_impostazioni:
                         f_en = ottieni_bandiera_html('Premier League', 22)
                         f_es = ottieni_bandiera_html('La Liga', 22)
                         st.markdown(f"### 🌍 Scanner Universale Value Bet ({f_it}Serie A &nbsp;•&nbsp; {f_en}Premier League &nbsp;•&nbsp; {f_es}La Liga)", unsafe_allow_html=True)
-                        st.markdown("<p style='color:#9ca3af;'>Motore <b>Salva-Cassa Pro</b> attivo: integra <b>xGOT, Parate Reali (Serie A), Game State, Cinismo, Qualità Tiro, Forma 5G e Coppe</b>.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='color:#9ca3af;'>Motore <b>Salva-Cassa Pro</b> attivo: integra <b>Poisson Dixon-Coles, xGOT, Parate Reali (Serie A), Game State, Cinismo, Qualità Tiro, Forma 5G e Coppe</b>.</p>", unsafe_allow_html=True)
                         
                         col_sl1, col_sl2 = st.columns([1, 1])
                         with col_sl1:
@@ -1683,10 +1794,17 @@ if not st.session_state.pagina_impostazioni:
                                 media_tp_2 = df_lega_match['Tiri in porta Trasferta'].mean() if 'Tiri in porta Trasferta' in df_lega_match.columns else 3.6
                                 media_xga_c = df_lega_match['xGA Casa'].mean() if 'xGA Casa' in df_lega_match.columns else 1.25
                                 media_xga_t = df_lega_match['xGA Trasferta'].mean() if 'xGA Trasferta' in df_lega_match.columns else 1.25
+                                pc_nz = df_lega_match['Parate Casa'][df_lega_match['Parate Casa'] > 0] if 'Parate Casa' in df_lega_match.columns else pd.Series(dtype=float)
+                                pt_nz = df_lega_match['Parate Trasferta'][df_lega_match['Parate Trasferta'] > 0] if 'Parate Trasferta' in df_lega_match.columns else pd.Series(dtype=float)
+                                media_par_c = float(pc_nz.mean()) if not pc_nz.empty else 3.0
+                                media_par_t = float(pt_nz.mean()) if not pt_nz.empty else 3.0
 
                                 lmbda_1, lmbda_2, p_1_pura, p_x_pura, p_2_pura, _ = calcola_poisson_match(
-                                    xg_c_att, xg_t_att, xga_c_def, xga_t_def, porta_c, porta_t, media_tp_1, media_tp_2,
-                                    dna_c, dna_t, is_coppe_c, is_coppe_t, xgot_c_att, xgot_t_att
+                                    xg_c_att, xg_t_att, xga_c_def, xga_t_def,
+                                    porta_c, porta_t, media_tp_1, media_tp_2,
+                                    dna_c, dna_t, is_coppe_c, is_coppe_t,
+                                    xgot_c_att, xgot_t_att, media_xga_c, media_xga_t,
+                                    par_c_real, par_t_real, media_par_c, media_par_t
                                 )
 
                                 m_gs_c, lbl_gs_c = calcola_game_state(p_1_pura, p_2_pura)
@@ -2049,7 +2167,7 @@ if not st.session_state.pagina_impostazioni:
                                         nome_match = bet['Partita']
                                         nome_match_html = bet.get('Partita_HTML', nome_match)
                                         lega_badge_html = bet.get('Campionato_HTML', bet['Campionato'])
-                                        colore_sfondo = mappa_colori.get(nome_match, '#13171d')
+                                        colore_sfondo = mappa_colori.get(nome_match, '#131920')
                                         contro_muro = bet.get('Contro_Muro', False)
                                         n_sem = bet.get('Semafori', 2)
                                         sem_html = bet.get('Semafori_HTML', '')
@@ -2089,19 +2207,19 @@ if not st.session_state.pagina_impostazioni:
                                                 puntata = "1 Unità (Rischio Basso)"
                                             
                                         html_cards += f"""
-                                        <div style="background: {colore_sfondo}; border-radius: 10px; border: 1px solid #222831; border-left: 5px solid {col_bordo}; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.22); transition: transform 0.2s ease;">
+                                        <div style="background: {colore_sfondo}; border-radius: 10px; border: 1px solid #222b36; border-left: 5px solid {col_bordo}; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.22); transition: transform 0.2s ease;">
                                             <div style="flex: 1.8; padding-right: 10px;">
                                                 <span style="font-size: 0.72em; color: #e5e7eb; background: #1c222b; border: 1px solid #2b313a; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{lega_badge_html}</span>{tag_scelta}
                                                 <h4 style="margin: 6px 0 2px 0; color: #fff !important; font-size: 1.05em; font-weight: 700;">{nome_match_html}</h4>
                                                 <p style="margin: 2px 0 2px 0; color: #00e676; font-weight: 700; font-size: 0.95em;">{bet['Mercato Consigliato']}</p>
                                                 <p style="margin: 0; font-size: 0.75em; color: #9ca3af;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b style="color:#fff;">{bet['Linea Eplay24']}</b></p>
                                             </div>
-                                            <div style="flex: 1.7; text-align: center; border-left: 1px solid #222831; padding: 0 10px;">
+                                            <div style="flex: 1.7; text-align: center; border-left: 1px solid #222b36; padding: 0 10px;">
                                                 <p style="margin: 0; font-size: 0.68em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Checklist Salva-Cassa Pro</p>
                                                 <p style="margin: 4px 0; font-size: 0.74em; color: #e5e7eb; background: #0d1014; border: 1px solid #1e232a; padding: 4px 6px; border-radius: 5px;">{sem_html}</p>
                                                 <p style="margin: 2px 0; font-size: 0.72em; color: #00e676;">{bet['Spia_Tattica']} | Reale: <b style="font-family: JetBrains Mono, monospace;">{bet['Proiezione_Finale']}</b></p>
                                             </div>
-                                            <div style="flex: 0.85; text-align: center; border-left: 1px solid #222831; border-right: 1px solid #222831; padding: 0 10px;">
+                                            <div style="flex: 0.85; text-align: center; border-left: 1px solid #222b36; border-right: 1px solid #222b36; padding: 0 10px;">
                                                 <p style="margin: 0; font-size: 0.7em; color: #00e676; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Eplay24</p>
                                                 <h2 style="margin: 2px 0 0 0; color: #fff !important; font-family: 'JetBrains Mono', monospace; font-size: 1.4em;">{bet['Quota Eplay24']}</h2>
                                             </div>
@@ -2219,7 +2337,7 @@ elif st.session_state.pagina_impostazioni:
 
 st.sidebar.markdown(
     """
-    <div style="margin-top: 60px; padding-top: 15px; border-top: 1px solid #1d2229; color: #6b7280; font-size: 0.85em; text-align: left;">
+    <div style="margin-top: 60px; padding-top: 15px; border-top: 1px solid #1d242e; color: #6b7280; font-size: 0.85em; text-align: left;">
         <span style="font-weight: 600; color: #8b949e; font-family: 'Outfit', sans-serif;">by Alessandro Gusmeroli</span>
     </div>
     """,
