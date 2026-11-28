@@ -20,9 +20,9 @@ URL_PARTE_3 = "/edit?usp=sharing"
 LINK_GOOGLE_FOGLI_26_27 = URL_PARTE_1 + URL_PARTE_2 + URL_PARTE_3
 LINK_GOOGLE_FOGLI_25_26 = ""
 
-# ==========================================
-# 1. IMPOSTAZIONI GENERALI E STILE AVANZATO
-# ==========================================
+# =============================================================
+# 1. IMPOSTAZIONI GENERALI E TEMA OBSIDIAN CARBON & NEON EMERALD
+# =============================================================
 st.set_page_config(
     page_title="Dashboard Betting", 
     layout="wide", 
@@ -52,129 +52,167 @@ st.markdown("""
     }
 
     @keyframes slideUpFade {
-        0% { opacity: 0; transform: translateY(15px); }
+        0% { opacity: 0; transform: translateY(12px); }
         100% { opacity: 1; transform: translateY(0); }
     }
     .main .block-container { 
         padding-top: 1.5rem; 
-        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
+    /* Intestazioni pulite stile default su sfondo carbonio */
     h1 {
-        background: -webkit-linear-gradient(45deg, #ffffff, #00cc66);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #ffffff !important;
         font-weight: 800 !important;
+        letter-spacing: -0.5px;
     }
-    h2, h3, h4 { font-weight: 700 !important; }
+    h2, h3, h4 {
+        color: #f3f4f6 !important;
+        font-weight: 700 !important;
+    }
     
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
         font-family: 'JetBrains Mono', monospace !important;
         font-weight: 700 !important;
+        color: #ffffff !important;
     }
 
+    /* Sfondo Obsidian Carbon opaco */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, rgba(0, 204, 102, 0.05), transparent 30%),
-                    radial-gradient(circle at 90% 80%, rgba(0, 102, 204, 0.04), transparent 30%);
-        background-color: #0e1117;
+        background: radial-gradient(circle at 12% 10%, rgba(0, 230, 118, 0.045), transparent 34%),
+                    radial-gradient(circle at 88% 88%, rgba(16, 185, 129, 0.03), transparent 36%);
+        background-color: #0a0c0f !important;
+        color: #e5e7eb;
     }
 
+    /* Sidebar Grafite Scura */
     [data-testid="stSidebar"] {
-        background-color: rgba(18, 22, 28, 0.5) !important;
-        backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        background-color: #101317 !important;
+        border-right: 1px solid #1d2229 !important;
     }
-    
-    div[data-baseweb="select"] > div {
-        background-color: rgba(0, 0, 0, 0.2) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
+    [data-testid="stSidebar"] h1 {
+        color: #00e676 !important;
+        font-size: 1.55rem !important;
+    }
+
+    /* Menu a tendina e input: Antracite puro opaco (zero marroncino) */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"] > div,
+    div[data-baseweb="input"] > div {
+        background-color: #161a20 !important;
+        border: 1px solid #2b313a !important;
+        color: #f3f4f6 !important;
         border-radius: 10px !important;
-        transition: border 0.3s ease;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    div[data-baseweb="select"] > div:hover {
-        border: 1px solid rgba(0, 204, 102, 0.5) !important;
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="base-input"] > div:hover,
+    div[data-baseweb="input"] > div:hover {
+        border-color: rgba(0, 230, 118, 0.55) !important;
+    }
+    div[data-baseweb="select"] > div:focus-within,
+    div[data-baseweb="base-input"] > div:focus-within,
+    div[data-baseweb="input"] > div:focus-within {
+        border-color: #00e676 !important;
+        box-shadow: 0 0 0 1px rgba(0, 230, 118, 0.25) !important;
+    }
+    div[data-baseweb="popover"] > div,
+    ul[data-baseweb="menu"] {
+        background-color: #161a20 !important;
+        border: 1px solid #2b313a !important;
+        border-radius: 10px !important;
+    }
+    ul[data-baseweb="menu"] li:hover {
+        background-color: #202630 !important;
+    }
+    /* Tag del multiselect (Coppe) */
+    span[data-baseweb="tag"] {
+        background-color: rgba(0, 230, 118, 0.16) !important;
+        border: 1px solid rgba(0, 230, 118, 0.4) !important;
+        color: #e5e7eb !important;
+        border-radius: 6px !important;
+    }
+
+    hr {
+        border-color: #1d2229 !important;
     }
     
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+    ::-webkit-scrollbar-track { background: #0a0c0f; }
+    ::-webkit-scrollbar-thumb { background: #262c36; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #36404f; }
 
-    .stTabs [data-baseweb="tab-list"] { gap: 2rem; border-bottom: 2px solid rgba(255, 255, 255, 0.05); }
-    .stTabs [data-baseweb="tab"] { height: 50px; font-weight: 600; font-size: 1.05rem; color: #7a7a7a; padding-bottom: 10px; transition: color 0.3s ease; }
-    .stTabs [data-baseweb="tab"]:hover { color: #d0d0d0; }
-    .stTabs [aria-selected="true"] { color: #00cc66 !important; border-bottom-color: #00cc66 !important; }
+    /* Schede Tab */
+    .stTabs [data-baseweb="tab-list"] { gap: 2rem; border-bottom: 1px solid #1d2229; }
+    .stTabs [data-baseweb="tab"] { height: 48px; font-weight: 600; font-size: 1.02rem; color: #8b949e; padding-bottom: 10px; transition: color 0.25s ease; }
+    .stTabs [data-baseweb="tab"]:hover { color: #e5e7eb; }
+    .stTabs [aria-selected="true"] { color: #00e676 !important; border-bottom-color: #00e676 !important; }
     
-    .stButton>button, div[data-testid="stFormSubmitButton"]>button { 
-        border-radius: 12px; 
-        background: rgba(0, 204, 102, 0.15); 
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        color: #00cc66; 
-        font-weight: 700; 
-        border: 1px solid rgba(0, 204, 102, 0.4); 
-        box-shadow: 0 4px 15px rgba(0,204,102, 0.1);
-        transition: all 0.3s ease;
+    /* Pulsanti Neon Emerald */
+    .stButton>button, div[data-testid="stFormSubmitButton"]>button, a[data-testid="stLinkButton"] { 
+        border-radius: 10px !important; 
+        background: rgba(0, 230, 118, 0.13) !important; 
+        color: #00e676 !important; 
+        font-weight: 700 !important; 
+        border: 1px solid rgba(0, 230, 118, 0.42) !important; 
+        box-shadow: 0 4px 14px rgba(0, 230, 118, 0.08) !important;
+        transition: all 0.25s ease !important;
     }
-    .stButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover { 
-        background: rgba(0, 204, 102, 0.9); 
-        color: white;
-        box-shadow: 0 6px 20px rgba(0,204,102, 0.4);
-        transform: translateY(-2px);
+    .stButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover, a[data-testid="stLinkButton"]:hover { 
+        background: #00e676 !important; 
+        color: #0a0c0f !important;
+        border-color: #00e676 !important;
+        box-shadow: 0 6px 20px rgba(0, 230, 118, 0.35) !important;
+        transform: translateY(-1px);
     }
     
+    /* Metriche Carbon */
     div[data-testid="metric-container"] {
-        background: rgba(30, 30, 36, 0.4) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        background: #13171d !important;
+        border: 1px solid #222831 !important;
         padding: 15% 10% !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
-        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 14px !important;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25) !important;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
     div[data-testid="metric-container"]:hover {
-        transform: translateY(-4px);
-        border: 1px solid rgba(0, 204, 102, 0.3) !important;
-        box-shadow: 0 12px 40px 0 rgba(0, 204, 102, 0.1) !important;
+        transform: translateY(-3px);
+        border-color: rgba(0, 230, 118, 0.38) !important;
+        box-shadow: 0 10px 28px rgba(0, 230, 118, 0.08) !important;
     }
     div[data-testid="metric-container"] label {
-        color: #a0a0a0 !important;
-        font-size: 0.95rem !important;
+        color: #9ca3af !important;
+        font-size: 0.92rem !important;
         font-weight: 600 !important;
     }
     
+    /* Card Obsidian Matte */
     .glass-box {
-        background: rgba(22, 26, 33, 0.5);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
-        margin-bottom: 24px;
-        transition: transform 0.3s ease;
+        background: #13171d;
+        border: 1px solid #222831;
+        border-radius: 14px;
+        padding: 22px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+        margin-bottom: 22px;
+        transition: border-color 0.25s ease;
     }
-    .glass-box:hover { border-color: rgba(255, 255, 255, 0.12); }
+    .glass-box:hover { border-color: #2f3845; }
     
-    [data-testid="stTable"] table { width: 100% !important; background: transparent !important; color: #e0e0e0; border-collapse: collapse; }
+    [data-testid="stTable"] table { width: 100% !important; background: transparent !important; color: #e5e7eb; border-collapse: collapse; }
     [data-testid="stTable"] tbody tr { transition: background-color 0.2s ease; }
-    [data-testid="stTable"] tbody tr:hover { background-color: rgba(255, 255, 255, 0.06) !important; }
+    [data-testid="stTable"] tbody tr:hover { background-color: rgba(255, 255, 255, 0.04) !important; }
     [data-testid="stTable"] th {
-        background-color: rgba(255, 255, 255, 0.02) !important;
+        background-color: #161a20 !important;
         color: #ffffff !important;
         font-weight: 600 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-bottom: 1px solid #262c36 !important;
         text-transform: uppercase;
         font-size: 0.85em;
         letter-spacing: 1px;
     }
     [data-testid="stTable"] th, [data-testid="stTable"] td { 
         text-align: center !important; 
-        border-color: rgba(255, 255, 255, 0.03) !important;
+        border-color: #1d2229 !important;
         padding: 12px 8px !important;
     }
 </style>
@@ -190,10 +228,10 @@ if not st.session_state.autenticato:
     col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
     with col_l2:
         st.markdown("""
-        <div class="glass-box" style="text-align: center; margin-top: 12vh; border-top: 4px solid #00cc66;">
-            <h1 style="margin:0; font-size: 3em; -webkit-text-fill-color: initial;">🔒</h1>
+        <div class="glass-box" style="text-align: center; margin-top: 12vh; border-top: 4px solid #00e676;">
+            <h1 style="margin:0; font-size: 3em;">🔒</h1>
             <h2 style="color: #fff; margin-top: 10px;">Accesso Riservato</h2>
-            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 0;">Inserisci la password per sbloccare la Dashboard Betting.</p>
+            <p style="color: #9ca3af; font-size: 0.9em; margin-bottom: 0;">Inserisci la password per sbloccare la Dashboard Betting.</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -414,7 +452,6 @@ def analizza_dna_squadra(team, df_part, xg_att, tt_att, xg_stag_medio, xgot_att=
         'has_xgot': False, 'delta_xgot': 0.0, 'stato_xgot': '', 'mult_par_xgot': 1.00
     }
     
-    # 1. Qualità del Tiro (xG / Tiro)
     if tt_att and tt_att > 0:
         xgt = float(xg_att) / float(tt_att)
         res['xg_per_tiro'] = xgt
@@ -427,7 +464,6 @@ def analizza_dna_squadra(team, df_part, xg_att, tt_att, xg_stag_medio, xgot_att=
             res['mult_cor_tiro'] = 0.94
             res['mult_par_tiro'] = 0.95
 
-    # 1B. Qualità Conclusione nello Specchio (xGOT vs xG - Solo Serie A quando compilato)
     if xgot_att and float(xgot_att) > 0 and xg_att and float(xg_att) > 0:
         res['has_xgot'] = True
         d_xgot = float(xgot_att) - float(xg_att)
@@ -442,7 +478,6 @@ def analizza_dna_squadra(team, df_part, xg_att, tt_att, xg_stag_medio, xgot_att=
             res['stato_xgot'] = f'⚖️ xGOT Neutro ({d_xgot:+.2f})'
             res['mult_par_xgot'] = 1.00
             
-    # 2. Analisi da foglio Partite (Cinismo + Forma 5G)
     if df_part is not None and not df_part.empty and 'Squadra Casa' in df_part.columns and 'Squadra Trasferta' in df_part.columns:
         df_t = df_part[(df_part['Squadra Casa'] == team) | (df_part['Squadra Trasferta'] == team)].copy()
         if not df_t.empty:
@@ -507,7 +542,6 @@ def calcola_game_state(p_win, p_lose):
 
 def calcola_poisson_match(xg_att_1, xg_att_2, xga_def_1, xga_def_2, tp_1, tp_2, media_tp_1, media_tp_2, dna_1, dna_2, coppe_1=False, coppe_2=False, xgot_1=0.0, xgot_2=0.0):
     """Calcola xG calibrati con xGOT (se presente in Serie A), Tiri in Porta, Momentum Ultime 5 e Affaticamento Coppe + distribuzione 1X2."""
-    # Blend offensivo con xGOT (70% xG + 30% xGOT) quando disponibile
     att_eff_1 = (xg_att_1 * 0.70 + xgot_1 * 0.30) if (xgot_1 and xgot_1 > 0) else xg_att_1
     att_eff_2 = (xg_att_2 * 0.70 + xgot_2 * 0.30) if (xgot_2 and xgot_2 > 0) else xg_att_2
 
@@ -629,47 +663,47 @@ def calcola_linea_statistica(proiezione, cuscinetto_base, stato_difesa=""):
         return "NO BET (Linea bassa)", 0, 0.0, "#888"
     linea_consigliata = target_cassa - 0.5
     margine = proiezione - target_cassa
-    colore = "#ffb703" if is_muro else ("#00cc66" if "Concede" in stato_difesa or "Permessive" in stato_difesa else "#38bdf8")
+    colore = "#ffb703" if is_muro else ("#00e676" if "Concede" in stato_difesa or "Permessive" in stato_difesa else "#38bdf8")
     return f"OVER {linea_consigliata:.1f}", target_cassa, margine, colore
 
-def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00cc66"):
+def genera_html_scanner(perc_over, perc_goal, tot_partite, color_accent="#00e676"):
     if perc_over > 0:
         quota_over = 100 / perc_over
-        testo_q_over = f"<span style='color:#a0a0a0; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>{quota_over:.2f}</b>"
+        testo_q_over = f"<span style='color:#9ca3af; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>{quota_over:.2f}</b>"
     else:
-        testo_q_over = "<span style='color:#a0a0a0; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>N/D</b>"
+        testo_q_over = "<span style='color:#9ca3af; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>N/D</b>"
 
     if perc_goal > 0:
         quota_goal = 100 / perc_goal
-        testo_q_goal = f"<span style='color:#a0a0a0; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>{quota_goal:.2f}</b>"
+        testo_q_goal = f"<span style='color:#9ca3af; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>{quota_goal:.2f}</b>"
     else:
-        testo_q_goal = "<span style='color:#a0a0a0; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>N/D</b>"
+        testo_q_goal = "<span style='color:#9ca3af; font-size:0.85em;'>Quota Fair:</span> <b style='color:#fff; font-family: JetBrains Mono, monospace;'>N/D</b>"
 
     return f"""
     <div class="glass-box">
-        <p style="margin:0; font-size:12px; color:#888; text-align: right; text-transform: uppercase; letter-spacing: 1px;">Match Storici Analizzati: {tot_partite}</p>
+        <p style="margin:0; font-size:12px; color:#8b949e; text-align: right; text-transform: uppercase; letter-spacing: 1px;">Match Storici Analizzati: {tot_partite}</p>
         <div style="margin-top: 5px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <strong style="color: #fff; font-size: 1.1em;">🔥 OVER 2.5</strong>
                 <div style="text-align: right;">
-                    <span style="margin-right: 12px; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 6px;">{testo_q_over}</span>
+                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222831; padding: 3px 8px; border-radius: 6px;">{testo_q_over}</span>
                     <span style="font-weight:800; font-size: 1.1em; color: {color_accent}; font-family: 'JetBrains Mono', monospace;">{perc_over:.1f}%</span>
                 </div>
             </div>
-            <div style="background: rgba(255,255,255,0.05); border-radius: 12px; width: 100%; height: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="background: linear-gradient(90deg, transparent, {color_accent}); border-radius: 12px; width: {perc_over}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
+            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222831;">
+                <div style="background: linear-gradient(90deg, #123c2f, {color_accent}); border-radius: 12px; width: {perc_over}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
             </div>
         </div>
-        <div style="margin-top: 30px;">
+        <div style="margin-top: 28px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <strong style="color: #fff; font-size: 1.1em;">⚽ GOAL (GG)</strong>
                 <div style="text-align: right;">
-                    <span style="margin-right: 12px; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 6px;">{testo_q_goal}</span>
+                    <span style="margin-right: 12px; background: #0d1014; border: 1px solid #222831; padding: 3px 8px; border-radius: 6px;">{testo_q_goal}</span>
                     <span style="font-weight:800; font-size: 1.1em; color: {color_accent}; font-family: 'JetBrains Mono', monospace;">{perc_goal:.1f}%</span>
                 </div>
             </div>
-            <div style="background: rgba(255,255,255,0.05); border-radius: 12px; width: 100%; height: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="background: linear-gradient(90deg, transparent, {color_accent}); border-radius: 12px; width: {perc_goal}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
+            <div style="background: #0d1014; border-radius: 12px; width: 100%; height: 14px; overflow: hidden; border: 1px solid #222831;">
+                <div style="background: linear-gradient(90deg, #123c2f, {color_accent}); border-radius: 12px; width: {perc_goal}%; height: 100%; box-shadow: 0 0 12px {color_accent}; transition: width 1s ease-in-out;"></div>
             </div>
         </div>
     </div>
@@ -739,7 +773,7 @@ if not st.session_state.pagina_impostazioni:
             st.sidebar.divider()
             col_txt_ingr, col_btn_ingr = st.sidebar.columns([4, 1])
             with col_txt_ingr:
-                st.markdown("<p style='font-size: 0.85em; color: #888; margin-top: 8px;'>Impostazioni Cloud</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.85em; color: #8b949e; margin-top: 8px;'>Impostazioni Cloud</p>", unsafe_allow_html=True)
             with col_btn_ingr:
                 if st.button("⚙️", help="Gestisci il collegamento Cloud"):
                     st.session_state.pagina_impostazioni = not st.session_state.pagina_impostazioni
@@ -750,23 +784,23 @@ if not st.session_state.pagina_impostazioni:
             if modalita_confronto:
                 stemma_1_hdr = ottieni_stemma_html(squadra_1, campionato_scelto, size=42)
                 stemma_2_hdr = ottieni_stemma_html(squadra_2, campionato_scelto, size=42)
-                badge_c1 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.2); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_casa else ""
-                badge_c2 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.2); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_ospite else ""
+                badge_c1 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.18); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_casa else ""
+                badge_c2 = " <span style='font-size:0.45em; background:rgba(255,183,3,0.18); color:#ffb703; padding:2px 6px; border-radius:4px; vertical-align:middle;'>🇪🇺 COPPE</span>" if coppe_ospite else ""
                 col_t1, col_vs, col_t2 = st.columns([2, 1, 2])
                 with col_t1:
-                    st.markdown(f"<h2 style='text-align: right; color: #00cc66; text-shadow: 0 0 20px rgba(0,204,102,0.4);'>{stemma_1_hdr}{squadra_1}{badge_c1}</h2>", unsafe_allow_html=True)
+                    st.markdown(f"<h2 style='text-align: right; color: #00e676 !important; text-shadow: 0 0 20px rgba(0,230,118,0.28);'>{stemma_1_hdr}{squadra_1}{badge_c1}</h2>", unsafe_allow_html=True)
                 with col_vs:
-                    st.markdown(f"<h3 style='text-align: center; color: #777; margin-top: 8px;'>{flag_header} vs</h3>", unsafe_allow_html=True)
+                    st.markdown(f"<h3 style='text-align: center; color: #6b7280 !important; margin-top: 8px;'>{flag_header} vs</h3>", unsafe_allow_html=True)
                 with col_t2:
-                    st.markdown(f"<h2 style='text-align: left; color: #ff4b4b; text-shadow: 0 0 20px rgba(255,75,75,0.4);'>{stemma_2_hdr}{squadra_2}{badge_c2}</h2>", unsafe_allow_html=True)
+                    st.markdown(f"<h2 style='text-align: left; color: #ff4b4b !important; text-shadow: 0 0 20px rgba(255,75,75,0.28);'>{stemma_2_hdr}{squadra_2}{badge_c2}</h2>", unsafe_allow_html=True)
             else:
                 col_titolo, col_data = st.columns([3, 1])
                 with col_titolo:
                     st.markdown(f"<h1>{flag_header} Statistiche {campionato_scelto}</h1>", unsafe_allow_html=True)
                 with col_data:
-                    st.markdown(f"<p style='text-align: right; color: #666; font-size: 0.85em; margin-top: 1.5em;'>⏱️ Fonte Dati:<br><b style='color:#00cc66;'>{data_aggiornamento}</b></p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='text-align: right; color: #8b949e; font-size: 0.85em; margin-top: 1.5em;'>⏱️ Fonte Dati:<br><b style='color:#00e676;'>{data_aggiornamento}</b></p>", unsafe_allow_html=True)
             
-            st.markdown(f"<p style='color:#888;'>Stagione sportiva {stagione_scelta}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:#8b949e;'>Stagione sportiva {stagione_scelta}</p>", unsafe_allow_html=True)
             st.divider()
 
             if modalita_confronto:
@@ -817,9 +851,22 @@ if not st.session_state.pagina_impostazioni:
                     v1_norm.append(v1_norm[0]); v2_norm.append(v2_norm[0]); categorie_radar.append(categorie_radar[0])
                     
                     fig_radar = go.Figure()
-                    fig_radar.add_trace(go.Scatterpolar(r=v1_norm, theta=categorie_radar, fill='toself', name=nome_1, line_color='#00cc66', line_width=3))
+                    fig_radar.add_trace(go.Scatterpolar(r=v1_norm, theta=categorie_radar, fill='toself', name=nome_1, line_color='#00e676', line_width=3))
                     fig_radar.add_trace(go.Scatterpolar(r=v2_norm, theta=categorie_radar, fill='toself', name=nome_2, line_color='#ff4b4b', line_width=3))
-                    fig_radar.update_layout(template="plotly_dark", polar=dict(radialaxis=dict(visible=False, range=[0, 100])), showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=420, margin=dict(t=30, b=30), font=dict(family='Outfit', size=13))
+                    fig_radar.update_layout(
+                        template="plotly_dark",
+                        polar=dict(
+                            bgcolor='rgba(19, 23, 29, 0.7)',
+                            radialaxis=dict(visible=False, range=[0, 100]),
+                            angularaxis=dict(gridcolor='#222831', linecolor='#2b313a')
+                        ),
+                        showlegend=True,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        height=420,
+                        margin=dict(t=30, b=30),
+                        font=dict(family='Outfit', size=13, color='#e5e7eb')
+                    )
                     st.plotly_chart(fig_radar, use_container_width=True)
 
                     st.markdown(f"### 🪢 Tiro alla Fune (Rapporto di Forza)")
@@ -841,7 +888,7 @@ if not st.session_state.pagina_impostazioni:
                     else:
                         lista_stats = [(col, dati_sq1[col], dati_sq2[col]) for col in colonne_numeriche]
                     
-                    html_content = '<div class="glass-box" style="padding: 30px;">'
+                    html_content = '<div style="background: #13171d; border: 1px solid #222831; border-radius: 14px; padding: 28px; color: #e5e7eb;">'
                     for nome_stat, v1, v2 in lista_stats:
                         tot = v1 + v2
                         p1 = 50 if tot == 0 else (v1 / tot) * 100
@@ -850,14 +897,14 @@ if not st.session_state.pagina_impostazioni:
                         v2_str = formatta_numero(v2)
                         html_content += f"""
                         <div style="margin-bottom: 22px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; font-size: 0.95em; color: #ddd; font-family: 'Outfit', sans-serif;">
-                                <span style="color: #00cc66; width: 30%; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 1.1em;">{v1_str}</span>
-                                <span style="width: 40%; text-align: center; font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px;">{nome_stat}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; font-size: 0.95em; color: #e5e7eb; font-family: 'Outfit', sans-serif;">
+                                <span style="color: #00e676; width: 30%; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 1.1em;">{v1_str}</span>
+                                <span style="width: 40%; text-align: center; font-size: 0.92em; text-transform: uppercase; letter-spacing: 1px; color: #d1d5db;">{nome_stat}</span>
                                 <span style="color: #ff4b4b; width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 1.1em;">{v2_str}</span>
                             </div>
-                            <div style="display: flex; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                                <div style="width: {p1}%; background-color: #00cc66; box-shadow: 0 0 10px rgba(0,204,102,0.5);"></div>
-                                <div style="width: {p2}%; background-color: #ff4b4b; box-shadow: 0 0 10px rgba(255,75,75,0.5);"></div>
+                            <div style="display: flex; width: 100%; height: 10px; border-radius: 5px; overflow: hidden; background: #0d1014; border: 1px solid #222831;">
+                                <div style="width: {p1}%; background-color: #00e676; box-shadow: 0 0 10px rgba(0,230,118,0.45);"></div>
+                                <div style="width: {p2}%; background-color: #ff4b4b; box-shadow: 0 0 10px rgba(255,75,75,0.45);"></div>
                             </div>
                         </div>
                         """
@@ -867,7 +914,7 @@ if not st.session_state.pagina_impostazioni:
                 with tab_pronostici_ia:
                     mod_testo = "Dati Reali (Casa vs Trasferta)" if simula_reale else "Media Stagionale Globale"
                     st.markdown("### 🧠 Centrale Pronostici IA: 1X2, Multigol & Bussola Tattica")
-                    st.markdown(f"<p style='color:#a0a0a0; font-size:0.9em;'>Motore calibrato con <b>Poisson + xGOT + Parate Reali + Forma 5G + Game State + Cinismo + Coppe</b> (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='color:#9ca3af; font-size:0.9em;'>Motore calibrato con <b>Poisson + xGOT + Parate Reali + Forma 5G + Game State + Cinismo + Coppe</b> (Modalità: <b>{mod_testo}</b>).</p>", unsafe_allow_html=True)
 
                     xg_stag_1 = (dati_sq1.get('xG Casa', 0) + dati_sq1.get('xG Trasferta', 0)) / 2.0
                     xg_stag_2 = (dati_sq2.get('xG Casa', 0) + dati_sq2.get('xG Trasferta', 0)) / 2.0
@@ -938,13 +985,13 @@ if not st.session_state.pagina_impostazioni:
 
                     if p_1 >= 56:
                         esito_consigliato = f"1 FISSO ({squadra_1})"
-                        prob_esito = p_1; qf_esito = qf_1; col_esito = "#00cc66"
+                        prob_esito = p_1; qf_esito = qf_1; col_esito = "#00e676"
                     elif p_2 >= 56:
                         esito_consigliato = f"2 FISSO ({squadra_2})"
                         prob_esito = p_2; qf_esito = qf_2; col_esito = "#ff4b4b"
                     elif p_1 >= 44:
                         esito_consigliato = f"DOPPIA CHANCE 1X ({squadra_1} o Pareggio)"
-                        prob_esito = p_1x; qf_esito = qf_1x; col_esito = "#00cc66"
+                        prob_esito = p_1x; qf_esito = qf_1x; col_esito = "#00e676"
                     elif p_2 >= 44:
                         esito_consigliato = f"DOPPIA CHANCE X2 ({squadra_2} o Pareggio)"
                         prob_esito = p_x2; qf_esito = qf_x2; col_esito = "#ff4b4b"
@@ -958,36 +1005,36 @@ if not st.session_state.pagina_impostazioni:
                     <div class="glass-box" style="border-top: 4px solid {col_esito}; padding: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div>
-                                <p style="margin:0; font-size:0.75em; color:#888; text-transform:uppercase; letter-spacing:1px;">Esito Principale Consigliato dall'IA</p>
-                                <h2 style="margin: 4px 0; color: {col_esito}; font-family: 'JetBrains Mono', monospace;">🏆 {esito_consigliato}</h2>
-                                <p style="margin:0; font-size:0.85em; color:#ccc;">Probabilità Stimata: <b>{prob_esito:.1f}%</b> | Quota Fair: <b>{qf_esito:.2f}</b> &nbsp;•&nbsp; 🎯 Risultati più probabili: <b>{top_2_ris}</b></p>
+                                <p style="margin:0; font-size:0.75em; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Esito Principale Consigliato dall'IA</p>
+                                <h2 style="margin: 4px 0; color: {col_esito} !important; font-family: 'JetBrains Mono', monospace;">🏆 {esito_consigliato}</h2>
+                                <p style="margin:0; font-size:0.85em; color:#d1d5db;">Probabilità Stimata: <b>{prob_esito:.1f}%</b> | Quota Fair: <b>{qf_esito:.2f}</b> &nbsp;•&nbsp; 🎯 Risultati più probabili: <b>{top_2_ris}</b></p>
                             </div>
                             <div style="display: flex; gap: 15px; margin-top: 10px;">
-                                <div style="background: rgba(0,204,102,0.1); border: 1px solid rgba(0,204,102,0.3); padding: 8px 14px; border-radius: 10px; text-align: center;">
-                                    <span style="font-size:0.75em; color:#aaa;">SEGNO 1</span><br>
-                                    <b style="color:#00cc66; font-family:'JetBrains Mono', monospace; font-size:1.15em;">{p_1:.1f}%</b><br>
-                                    <span style="font-size:0.7em; color:#888;">Fair: {qf_1:.2f}</span>
+                                <div style="background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.3); padding: 8px 14px; border-radius: 10px; text-align: center;">
+                                    <span style="font-size:0.75em; color:#9ca3af;">SEGNO 1</span><br>
+                                    <b style="color:#00e676; font-family:'JetBrains Mono', monospace; font-size:1.15em;">{p_1:.1f}%</b><br>
+                                    <span style="font-size:0.7em; color:#8b949e;">Fair: {qf_1:.2f}</span>
                                 </div>
-                                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); padding: 8px 14px; border-radius: 10px; text-align: center;">
-                                    <span style="font-size:0.75em; color:#aaa;">SEGNO X</span><br>
+                                <div style="background: #161a20; border: 1px solid #2b313a; padding: 8px 14px; border-radius: 10px; text-align: center;">
+                                    <span style="font-size:0.75em; color:#9ca3af;">SEGNO X</span><br>
                                     <b style="color:#fff; font-family:'JetBrains Mono', monospace; font-size:1.15em;">{p_x:.1f}%</b><br>
-                                    <span style="font-size:0.7em; color:#888;">Fair: {qf_x:.2f}</span>
+                                    <span style="font-size:0.7em; color:#8b949e;">Fair: {qf_x:.2f}</span>
                                 </div>
-                                <div style="background: rgba(255,75,75,0.1); border: 1px solid rgba(255,75,75,0.3); padding: 8px 14px; border-radius: 10px; text-align: center;">
-                                    <span style="font-size:0.75em; color:#aaa;">SEGNO 2</span><br>
+                                <div style="background: rgba(255,75,75,0.08); border: 1px solid rgba(255,75,75,0.3); padding: 8px 14px; border-radius: 10px; text-align: center;">
+                                    <span style="font-size:0.75em; color:#9ca3af;">SEGNO 2</span><br>
                                     <b style="color:#ff4b4b; font-family:'JetBrains Mono', monospace; font-size:1.15em;">{p_2:.1f}%</b><br>
-                                    <span style="font-size:0.7em; color:#888;">Fair: {qf_2:.2f}</span>
+                                    <span style="font-size:0.7em; color:#8b949e;">Fair: {qf_2:.2f}</span>
                                 </div>
                             </div>
                         </div>
                         <div style="margin-top: 14px; display: flex; width: 100%; height: 10px; border-radius: 6px; overflow: hidden;">
-                            <div style="width: {p_1}%; background: #00cc66;" title="1: {p_1:.1f}%"></div>
-                            <div style="width: {p_x}%; background: #888888;" title="X: {p_x:.1f}%"></div>
+                            <div style="width: {p_1}%; background: #00e676;" title="1: {p_1:.1f}%"></div>
+                            <div style="width: {p_x}%; background: #6b7280;" title="X: {p_x:.1f}%"></div>
                             <div style="width: {p_2}%; background: #ff4b4b;" title="2: {p_2:.1f}%"></div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.78em; color:#999; margin-top:8px; font-family:'JetBrains Mono', monospace;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.78em; color:#9ca3af; margin-top:8px; font-family:'JetBrains Mono', monospace;">
                             <span>Doppia Chance 1X: <b style="color:#fff;">{p_1x:.1f}%</b> (Fair {qf_1x:.2f})</span>
-                            <span>Gol Totali Attesi nel Match: <b style="color:#00cc66;">{xg_totali_match:.2f} xG</b></span>
+                            <span>Gol Totali Attesi nel Match: <b style="color:#00e676;">{xg_totali_match:.2f} xG</b></span>
                             <span>Doppia Chance X2: <b style="color:#fff;">{p_x2:.1f}%</b> (Fair {qf_x2:.2f})</span>
                         </div>
                     </div>
@@ -997,26 +1044,26 @@ if not st.session_state.pagina_impostazioni:
                     st.markdown("#### 🔬 DNA Tattico & Correttori Attivi (Game State • Cinismo • Qualità Tiro / xGOT • Forma)")
                     col_dna1, col_dna2 = st.columns(2)
                     with col_dna1:
-                        coppe_txt_1 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_casa else "<span style='color:#888;'>Riposata</span>"
+                        coppe_txt_1 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_casa else "<span style='color:#8b949e;'>Riposata</span>"
                         lbl_q1 = f"xGOT ({xgot_1:.2f})" if dna_1['has_xgot'] else f"Qualità ({dna_1['xg_per_tiro']:.3f} xG/T)"
                         val_q1 = dna_1['stato_xgot'] if dna_1['has_xgot'] else dna_1['stato_tiro']
                         st.markdown(f"""
-                        <div class="glass-box" style="border-left: 4px solid #00cc66; padding: 14px 16px; margin-bottom: 16px;">
+                        <div class="glass-box" style="border-left: 4px solid #00e676; padding: 14px 16px; margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <b style="color:#00cc66; font-size:0.95em;">🏠 {stemma_sq1}{squadra_1}</b>
-                                <span style="font-size:0.75em; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:6px;">{dna_1['momentum_label']} • {coppe_txt_1}</span>
+                                <b style="color:#00e676; font-size:0.95em;">🏠 {stemma_sq1}{squadra_1}</b>
+                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222831; padding:2px 8px; border-radius:6px;">{dna_1['momentum_label']} • {coppe_txt_1}</span>
                             </div>
                             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">Game State</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">Game State</span>
                                     <b style="color:#fff;">{label_gs_1}</b>
                                 </div>
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">Cinismo (Gol/xG)</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">Cinismo (Gol/xG)</span>
                                     <b style="color:#fff;">{dna_1['stato_cinismo']}</b>
                                 </div>
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">{lbl_q1}</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">{lbl_q1}</span>
                                     <b style="color:#fff;">{val_q1}</b>
                                 </div>
                             </div>
@@ -1024,26 +1071,26 @@ if not st.session_state.pagina_impostazioni:
                         """, unsafe_allow_html=True)
 
                     with col_dna2:
-                        coppe_txt_2 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_ospite else "<span style='color:#888;'>Riposata</span>"
+                        coppe_txt_2 = "<span style='color:#ffb703; font-weight:700;'>🇪🇺 Freno Coppe (-10%)</span>" if coppe_ospite else "<span style='color:#8b949e;'>Riposata</span>"
                         lbl_q2 = f"xGOT ({xgot_2:.2f})" if dna_2['has_xgot'] else f"Qualità ({dna_2['xg_per_tiro']:.3f} xG/T)"
                         val_q2 = dna_2['stato_xgot'] if dna_2['has_xgot'] else dna_2['stato_tiro']
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 4px solid #ff4b4b; padding: 14px 16px; margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                 <b style="color:#ff4b4b; font-size:0.95em;">✈️ {stemma_sq2}{squadra_2}</b>
-                                <span style="font-size:0.75em; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:6px;">{dna_2['momentum_label']} • {coppe_txt_2}</span>
+                                <span style="font-size:0.75em; background:#0d1014; border:1px solid #222831; padding:2px 8px; border-radius:6px;">{dna_2['momentum_label']} • {coppe_txt_2}</span>
                             </div>
                             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.76em;">
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">Game State</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">Game State</span>
                                     <b style="color:#fff;">{label_gs_2}</b>
                                 </div>
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">Cinismo (Gol/xG)</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">Cinismo (Gol/xG)</span>
                                     <b style="color:#fff;">{dna_2['stato_cinismo']}</b>
                                 </div>
-                                <div style="background:rgba(0,0,0,0.25); padding:7px; border-radius:6px;">
-                                    <span style="color:#888; display:block;">{lbl_q2}</span>
+                                <div style="background:#0d1014; border:1px solid #1e232a; padding:7px; border-radius:6px;">
+                                    <span style="color:#8b949e; display:block;">{lbl_q2}</span>
                                     <b style="color:#fff;">{val_q2}</b>
                                 </div>
                             </div>
@@ -1089,15 +1136,15 @@ if not st.session_state.pagina_impostazioni:
                     
                     with col_mg1:
                         st.markdown(f"""
-                        <div class="glass-box" style="border-left: 5px solid #00cc66;">
-                            <h4 style="margin:0; color:#00cc66;">🏠 {stemma_sq1}{squadra_1} (xG Calibrati: {l1:.2f})</h4>
-                            <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #aaa;">Multigol Squadra Consigliato:</p>
-                            <h2 style="margin:0; color:#fff; font-family:'JetBrains Mono', monospace;">⚽ {cons_1}</h2>
-                            <p style="margin: 4px 0 12px 0; font-size: 0.85em; color: #00cc66;">Probabilità: <b>{prob_1:.1f}%</b> | Quota Fair: <b>{qf_1_mg:.2f}</b></p>
-                            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; font-size: 0.8em; color: #ddd; margin-bottom: 12px;">
+                        <div class="glass-box" style="border-left: 5px solid #00e676;">
+                            <h4 style="margin:0; color:#00e676 !important;">🏠 {stemma_sq1}{squadra_1} (xG Calibrati: {l1:.2f})</h4>
+                            <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #9ca3af;">Multigol Squadra Consigliato:</p>
+                            <h2 style="margin:0; color:#fff !important; font-family:'JetBrains Mono', monospace;">⚽ {cons_1}</h2>
+                            <p style="margin: 4px 0 12px 0; font-size: 0.85em; color: #00e676;">Probabilità: <b>{prob_1:.1f}%</b> | Quota Fair: <b>{qf_1_mg:.2f}</b></p>
+                            <div style="background: #0d1014; border: 1px solid #1e232a; padding: 10px; border-radius: 8px; font-size: 0.8em; color: #d1d5db; margin-bottom: 12px;">
                                 {buss_1}
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#aaa; font-family:'JetBrains Mono', monospace;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#9ca3af; font-family:'JetBrains Mono', monospace;">
                                 <span>MG 1-2: <b style="color:#fff;">{m12_1:.1f}%</b></span>
                                 <span>MG 1-3: <b style="color:#fff;">{m13_1:.1f}%</b></span>
                                 <span>MG 2-3: <b style="color:#fff;">{m23_1:.1f}%</b></span>
@@ -1108,14 +1155,14 @@ if not st.session_state.pagina_impostazioni:
                     with col_mg2:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 5px solid #ff4b4b;">
-                            <h4 style="margin:0; color:#ff4b4b;">✈️ {stemma_sq2}{squadra_2} (xG Calibrati: {l2:.2f})</h4>
-                            <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #aaa;">Multigol Squadra Consigliato:</p>
-                            <h2 style="margin:0; color:#fff; font-family:'JetBrains Mono', monospace;">⚽ {cons_2}</h2>
+                            <h4 style="margin:0; color:#ff4b4b !important;">✈️ {stemma_sq2}{squadra_2} (xG Calibrati: {l2:.2f})</h4>
+                            <p style="margin: 8px 0 4px 0; font-size: 0.82em; color: #9ca3af;">Multigol Squadra Consigliato:</p>
+                            <h2 style="margin:0; color:#fff !important; font-family:'JetBrains Mono', monospace;">⚽ {cons_2}</h2>
                             <p style="margin: 4px 0 12px 0; font-size: 0.85em; color: #ff4b4b;">Probabilità: <b>{prob_2:.1f}%</b> | Quota Fair: <b>{qf_2_mg:.2f}</b></p>
-                            <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; font-size: 0.8em; color: #ddd; margin-bottom: 12px;">
+                            <div style="background: #0d1014; border: 1px solid #1e232a; padding: 10px; border-radius: 8px; font-size: 0.8em; color: #d1d5db; margin-bottom: 12px;">
                                 {buss_2}
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#aaa; font-family:'JetBrains Mono', monospace;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#9ca3af; font-family:'JetBrains Mono', monospace;">
                                 <span>MG 1-2: <b style="color:#fff;">{m12_2:.1f}%</b></span>
                                 <span>MG 1-3: <b style="color:#fff;">{m13_2:.1f}%</b></span>
                                 <span>MG 2-3: <b style="color:#fff;">{m23_2:.1f}%</b></span>
@@ -1161,25 +1208,25 @@ if not st.session_state.pagina_impostazioni:
 
                     # 📏 LINEE STATISTICHE PREVISTE
                     st.markdown("<h4 style='margin-top: 30px;'>📏 Linee Statistiche Previste (Calibrate con Game State, Cinismo, Qualità Tiro & Coppe)</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Incrocia i dati prodotti dalla squadra con quelli concessi dall'avversario applicando tutti i correttori tattici e il cuscinetto sul Target Reale di Cassa.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#9ca3af; font-size:0.85em;'>Incrocia i dati prodotti dalla squadra con quelli concessi dall'avversario applicando tutti i correttori tattici e il cuscinetto sul Target Reale di Cassa.</p>", unsafe_allow_html=True)
 
                     def genera_riga_linea_html(icona, etichetta, media_fatti, subiti_avv, stato_dif, proj_reale, cuscinetto, mult_appl):
                         linea_txt, target_int, marg, col_badge = calcola_linea_statistica(proj_reale, cuscinetto, stato_dif)
                         extra_target = f"Servono <b>{target_int}</b> (+{marg:.2f})" if target_int > 0 else "Dati bassi"
                         delta_pct = (mult_appl - 1.0) * 100
-                        tag_corr = f"<span style='color:{'#00cc66' if delta_pct > 0.5 else ('#ffb703' if delta_pct < -0.5 else '#888')};'>({delta_pct:+.0f}% IA)</span>" if abs(delta_pct) >= 1.0 else ""
+                        tag_corr = f"<span style='color:{'#00e676' if delta_pct > 0.5 else ('#ffb703' if delta_pct < -0.5 else '#8b949e')};'>({delta_pct:+.0f}% IA)</span>" if abs(delta_pct) >= 1.0 else ""
                         return f"""
-                        <div style="background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+                        <div style="background: #0d1014; border: 1px solid #1e232a; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                                 <div>
                                     <span style="font-size:0.85em; font-weight:700; color:#fff;">{icona} {etichetta} {tag_corr}</span>
-                                    <div style="font-size:0.74em; color:#aaa; margin-top:2px;">
-                                        Media: <b style="color:#ddd;">{media_fatti:.2f}</b> &nbsp;|&nbsp; Concessi Avv: <b style="color:#ddd;">{subiti_avv:.2f}</b> <span style="font-size:0.95em;">({stato_dif})</span>
+                                    <div style="font-size:0.74em; color:#9ca3af; margin-top:2px;">
+                                        Media: <b style="color:#e5e7eb;">{media_fatti:.2f}</b> &nbsp;|&nbsp; Concessi Avv: <b style="color:#e5e7eb;">{subiti_avv:.2f}</b> <span style="font-size:0.95em;">({stato_dif})</span>
                                     </div>
                                 </div>
                                 <div style="text-align:right;">
-                                    <span style="background: rgba(255,255,255,0.06); border: 1px solid {col_badge}; color: {col_badge}; padding: 3px 9px; border-radius: 6px; font-family:'JetBrains Mono', monospace; font-weight:800; font-size:0.92em;">{linea_txt}</span>
-                                    <div style="font-size:0.72em; color:#aaa; margin-top:3px; font-family:'JetBrains Mono', monospace;">
+                                    <span style="background: #161a20; border: 1px solid {col_badge}; color: {col_badge}; padding: 3px 9px; border-radius: 6px; font-family:'JetBrains Mono', monospace; font-weight:800; font-size:0.92em;">{linea_txt}</span>
+                                    <div style="font-size:0.72em; color:#9ca3af; margin-top:3px; font-family:'JetBrains Mono', monospace;">
                                         Proiez: <b style="color:#fff;">{proj_reale:.2f}</b> • {extra_target}
                                     </div>
                                 </div>
@@ -1193,8 +1240,8 @@ if not st.session_state.pagina_impostazioni:
                         r1_tp = genera_riga_linea_html("🥅", "Tiri in Porta", tp_1, sub_tp_2, stato_tp_2, proj_tp_1, 0.6, mult_tp_1)
                         r1_cor = genera_riga_linea_html("🚩", "Corner", cor_1, sub_cor_2, stato_cor_2, proj_cor_1, 0.7, mult_cor_1)
                         st.markdown(f"""
-                        <div class="glass-box" style="border-top: 3px solid #00cc66; padding: 16px; margin-bottom: 14px;">
-                            <h4 style="margin:0 0 12px 0; color:#00cc66;">🏠 Linee {stemma_sq1}{squadra_1} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_2}</span></h4>
+                        <div class="glass-box" style="border-top: 3px solid #00e676; padding: 16px; margin-bottom: 14px;">
+                            <h4 style="margin:0 0 12px 0; color:#00e676 !important;">🏠 Linee {stemma_sq1}{squadra_1} <span style="font-size:0.72em; color:#8b949e; font-weight:400;">vs difesa {squadra_2}</span></h4>
                             {r1_tt}
                             {r1_tp}
                             {r1_cor}
@@ -1207,7 +1254,7 @@ if not st.session_state.pagina_impostazioni:
                         r2_cor = genera_riga_linea_html("🚩", "Corner", cor_2, sub_cor_1, stato_cor_1, proj_cor_2, 0.7, mult_cor_2)
                         st.markdown(f"""
                         <div class="glass-box" style="border-top: 3px solid #ff4b4b; padding: 16px; margin-bottom: 14px;">
-                            <h4 style="margin:0 0 12px 0; color:#ff4b4b;">✈️ Linee {stemma_sq2}{squadra_2} <span style="font-size:0.72em; color:#888; font-weight:400;">vs difesa {squadra_1}</span></h4>
+                            <h4 style="margin:0 0 12px 0; color:#ff4b4b !important;">✈️ Linee {stemma_sq2}{squadra_2} <span style="font-size:0.72em; color:#8b949e; font-weight:400;">vs difesa {squadra_1}</span></h4>
                             {r2_tt}
                             {r2_tp}
                             {r2_cor}
@@ -1227,23 +1274,23 @@ if not st.session_state.pagina_impostazioni:
                     lt_cor, tgt_cor, m_cor, col_l_cor = calcola_linea_statistica(proj_tot_cor, 1.0, stato_tot_cor)
 
                     st.markdown(f"""
-                    <div class="glass-box" style="padding: 16px; border: 1px solid rgba(56,189,248,0.25);">
-                        <p style="margin:0 0 10px 0; font-size:0.78em; color:#aaa; text-transform:uppercase; letter-spacing:1px;">🌐 Proiezione Linee Totali Match (Casa + Ospite)</p>
+                    <div class="glass-box" style="padding: 16px; border: 1px solid #262e39;">
+                        <p style="margin:0 0 10px 0; font-size:0.78em; color:#9ca3af; text-transform:uppercase; letter-spacing:1px;">🌐 Proiezione Linee Totali Match (Casa + Ospite)</p>
                         <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tt};">
-                                <span style="font-size:0.8em; color:#aaa;">👟 TIRI TOTALI MATCH</span><br>
+                            <div style="flex:1; min-width:180px; background:#0d1014; border:1px solid #1e232a; padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tt};">
+                                <span style="font-size:0.8em; color:#9ca3af;">👟 TIRI TOTALI MATCH</span><br>
                                 <b style="font-size:1.15em; color:{col_l_tt}; font-family:'JetBrains Mono', monospace;">{lt_tt}</b>
-                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tt:.2f}</b> (Servono {tgt_tt})</span>
+                                <span style="font-size:0.78em; color:#d1d5db; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tt:.2f}</b> (Servono {tgt_tt})</span>
                             </div>
-                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tp};">
-                                <span style="font-size:0.8em; color:#aaa;">🥅 TIRI IN PORTA MATCH</span><br>
+                            <div style="flex:1; min-width:180px; background:#0d1014; border:1px solid #1e232a; padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_tp};">
+                                <span style="font-size:0.8em; color:#9ca3af;">🥅 TIRI IN PORTA MATCH</span><br>
                                 <b style="font-size:1.15em; color:{col_l_tp}; font-family:'JetBrains Mono', monospace;">{lt_tp}</b>
-                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tp:.2f}</b> (Servono {tgt_tp})</span>
+                                <span style="font-size:0.78em; color:#d1d5db; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_tp:.2f}</b> (Servono {tgt_tp})</span>
                             </div>
-                            <div style="flex:1; min-width:180px; background:rgba(0,0,0,0.28); padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_cor};">
-                                <span style="font-size:0.8em; color:#aaa;">🚩 CORNER TOTALI MATCH</span><br>
+                            <div style="flex:1; min-width:180px; background:#0d1014; border:1px solid #1e232a; padding:10px 14px; border-radius:10px; border-left:3px solid {col_l_cor};">
+                                <span style="font-size:0.8em; color:#9ca3af;">🚩 CORNER TOTALI MATCH</span><br>
                                 <b style="font-size:1.15em; color:{col_l_cor}; font-family:'JetBrains Mono', monospace;">{lt_cor}</b>
-                                <span style="font-size:0.78em; color:#ddd; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_cor:.2f}</b> (Servono {tgt_cor})</span>
+                                <span style="font-size:0.78em; color:#d1d5db; display:block; margin-top:2px;">Proiezione: <b>{proj_tot_cor:.2f}</b> (Servono {tgt_cor})</span>
                             </div>
                         </div>
                     </div>
@@ -1251,7 +1298,7 @@ if not st.session_state.pagina_impostazioni:
                         
                     # 🧤 FOCUS PORTIERI POTENZIATO CON PARATE REALI + xGOT
                     st.markdown("<h4 style='margin-top: 30px;'>🧤 Focus Portieri & Linea Parate (Parate Reali + xGOT Avversario)</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>In Serie A incrocia la media parate reale del portiere con i tiri in porta e l'xGOT dell'avversario per ricavare una linea Over Parate affidabile.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#9ca3af; font-size:0.85em;'>In Serie A incrocia la media parate reale del portiere con i tiri in porta e l'xGOT dell'avversario per ricavare una linea Over Parate affidabile.</p>", unsafe_allow_html=True)
                     
                     parate_attese_1, tiri_subiti_1, fonte_gk_1 = calcola_parate_portiere(par_real_1, proj_tp_2, xga_def_1, media_xga_1, dna_2)
                     parate_attese_2, tiri_subiti_2, fonte_gk_2 = calcola_parate_portiere(par_real_2, proj_tp_1, xga_def_2, media_xga_2, dna_1)
@@ -1259,7 +1306,7 @@ if not st.session_state.pagina_impostazioni:
                     def genera_card_portiere(squadra, stemma_html, parate, par_reali, tiri_subiti, ruolo, fonte_txt):
                         linea_gk, tgt_gk, marg_gk, _ = calcola_linea_statistica(parate, 0.45, "")
                         if parate >= 3.6:
-                            col_badge = "#00cc66"
+                            col_badge = "#00e676"
                             alert = f"🔥 ALTO ASSEDIO: Consigliato {linea_gk} Parate"
                         elif parate <= 2.2:
                             col_badge = "#ff4b4b"
@@ -1271,15 +1318,15 @@ if not st.session_state.pagina_impostazioni:
                         return f"""
                         <div class="glass-box" style="border-left: 4px solid {col_badge}; padding: 15px; margin-bottom: 0;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <p style="margin: 0; font-size: 0.8em; color: #aaa; text-transform: uppercase;">{stemma_html}Portiere {squadra} ({ruolo})</p>
-                                <span style="font-size:0.68em; background:rgba(255,255,255,0.07); color:#ddd; padding:2px 7px; border-radius:4px;">{fonte_txt}</span>
+                                <p style="margin: 0; font-size: 0.8em; color: #9ca3af; text-transform: uppercase;">{stemma_html}Portiere {squadra} ({ruolo})</p>
+                                <span style="font-size:0.68em; background:#161a20; border:1px solid #2b313a; color:#d1d5db; padding:2px 7px; border-radius:4px;">{fonte_txt}</span>
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:baseline; margin: 6px 0;">
-                                <h3 style="margin: 0; color: #fff; font-family: 'JetBrains Mono', monospace;">{parate:.2f} Parate Attese</h3>
-                                <span style="border: 1px solid {col_badge}; color: {col_badge}; padding: 2px 8px; border-radius: 6px; font-family:'JetBrains Mono', monospace; font-size:0.85em; font-weight:800;">{linea_gk}</span>
+                                <h3 style="margin: 0; color: #fff !important; font-family: 'JetBrains Mono', monospace;">{parate:.2f} Parate Attese</h3>
+                                <span style="border: 1px solid {col_badge}; color: {col_badge}; background:#0d1014; padding: 2px 8px; border-radius: 6px; font-family:'JetBrains Mono', monospace; font-size:0.85em; font-weight:800;">{linea_gk}</span>
                             </div>
-                            <p style="margin: 0; font-size: 0.82em; color: #ddd;">{info_reali}Tiri in porta subiti stimati: <b>{tiri_subiti:.1f}</b></p>
-                            <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 6px;">
+                            <p style="margin: 0; font-size: 0.82em; color: #d1d5db;">{info_reali}Tiri in porta subiti stimati: <b>{tiri_subiti:.1f}</b></p>
+                            <div style="margin-top: 10px; background: #0d1014; border: 1px solid #1e232a; padding: 6px 10px; border-radius: 6px;">
                                 <span style="font-size: 0.8em; color: {col_badge}; font-weight: 700;">{alert}</span>
                             </div>
                         </div>
@@ -1292,12 +1339,12 @@ if not st.session_state.pagina_impostazioni:
                         st.markdown(genera_card_portiere(squadra_2, stemma_sq2, parate_attese_2, par_real_2, tiri_subiti_2, "Trasferta", fonte_gk_2), unsafe_allow_html=True)
 
                     st.markdown("<h4 style='margin-top: 30px;'>🥊 Verdetto IA: Testa a Testa (1X2) Tiri, Corner & Falli</h4>", unsafe_allow_html=True)
-                    st.markdown("<p style='color:#a0a0a0; font-size:0.85em;'>Simulazione dei 4 duelli statistici diretti calibrata con Game State, Qualità Tiro, Cinismo e Affaticamento Coppe.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#9ca3af; font-size:0.85em;'>Simulazione dei 4 duelli statistici diretti calibrata con Game State, Qualità Tiro, Cinismo e Affaticamento Coppe.</p>", unsafe_allow_html=True)
 
                     diff_tt = proj_tt_1 - proj_tt_2
                     if diff_tt >= 3.5:
                         verd_tt = f"1 TIRI TOTALI ({squadra_1})"
-                        col_tt = "#00cc66"
+                        col_tt = "#00e676"
                         cons_tt = f"Dominio volume (<b>+{diff_tt:.2f} tiri</b>). Ottimo <b>1 Tiri</b> o <b>Handicap -2.5</b>."
                     elif diff_tt <= -3.5:
                         verd_tt = f"2 TIRI TOTALI ({squadra_2})"
@@ -1305,7 +1352,7 @@ if not st.session_state.pagina_impostazioni:
                         cons_tt = f"Dominio volume (<b>{diff_tt:.2f} tiri</b>). Ottimo <b>2 Tiri</b> o <b>Handicap -2.5 Ospite</b>."
                     elif diff_tt >= 1.5:
                         verd_tt = f"1 Tiri Totali ({squadra_1})"
-                        col_tt = "#00cc66"
+                        col_tt = "#00e676"
                         cons_tt = f"Buon margine (<b>+{diff_tt:.2f} tiri</b>). Consigliato <b>1 Tiri</b> secco senza handicap."
                     elif diff_tt <= -1.5:
                         verd_tt = f"2 Tiri Totali ({squadra_2})"
@@ -1319,7 +1366,7 @@ if not st.session_state.pagina_impostazioni:
                     diff_tp = proj_tp_1 - proj_tp_2
                     if diff_tp >= 1.5:
                         verd_tp = f"1 TIRI IN PORTA ({squadra_1})"
-                        col_tp = "#00cc66"
+                        col_tp = "#00e676"
                         cons_tp = f"Netta superiorità (<b>+{diff_tp:.2f} nello specchio</b>). Ottimo <b>1 Tiri Porta</b> o <b>H -1.5</b>."
                     elif diff_tp <= -1.5:
                         verd_tp = f"2 TIRI IN PORTA ({squadra_2})"
@@ -1327,7 +1374,7 @@ if not st.session_state.pagina_impostazioni:
                         cons_tp = f"Netta superiorità (<b>{diff_tp:.2f} nello specchio</b>). Ottimo <b>2 Tiri Porta</b> o <b>H -1.5</b>."
                     elif diff_tp >= 0.65:
                         verd_tp = f"1 Tiri in Porta ({squadra_1})"
-                        col_tp = "#00cc66"
+                        col_tp = "#00e676"
                         cons_tp = f"Vantaggio precisione (<b>+{diff_tp:.2f}</b>). Valido <b>1 Tiri in Porta</b> in singola."
                     elif diff_tp <= -0.65:
                         verd_tp = f"2 Tiri in Porta ({squadra_2})"
@@ -1341,7 +1388,7 @@ if not st.session_state.pagina_impostazioni:
                     diff_cor = proj_cor_1 - proj_cor_2
                     if diff_cor >= 1.6:
                         verd_cor = f"1 CORNER ({squadra_1})"
-                        col_cor = "#00cc66"
+                        col_cor = "#00e676"
                         cons_cor = f"Margine netto (<b>+{diff_cor:.2f}</b>). Ottimo <b>1 Corner</b> o <b>Handicap -1.5</b>."
                     elif diff_cor <= -1.6:
                         verd_cor = f"2 CORNER ({squadra_2})"
@@ -1349,7 +1396,7 @@ if not st.session_state.pagina_impostazioni:
                         cons_cor = f"Margine netto (<b>{diff_cor:.2f}</b>). Ottimo <b>2 Corner</b> o <b>Handicap -1.5 Ospite</b>."
                     elif diff_cor >= 0.65:
                         verd_cor = f"1 Corner Leggero ({squadra_1})"
-                        col_cor = "#00cc66"
+                        col_cor = "#00e676"
                         cons_cor = f"Vantaggio moderato (<b>+{diff_cor:.2f}</b>). Evita handicap alti, meglio linea Over."
                     elif diff_cor <= -0.65:
                         verd_cor = f"2 Corner Leggero ({squadra_2})"
@@ -1372,7 +1419,7 @@ if not st.session_state.pagina_impostazioni:
 
                     if diff_fal >= 1.5:
                         verd_fal = f"PIÙ FALLI: {squadra_1} (Segno 1)"
-                        col_fal = "#00cc66"
+                        col_fal = "#00e676"
                         cons_fal = f"Scarto stimato: <b>+{diff_fal:.2f} falli</b>. {squadra_1} più fallosa e costretta a spezzare il gioco."
                     elif diff_fal <= -1.5:
                         verd_fal = f"PIÙ FALLI: {squadra_2} (Segno 2)"
@@ -1380,7 +1427,7 @@ if not st.session_state.pagina_impostazioni:
                         cons_fal = f"Scarto stimato: <b>{abs(diff_fal):.2f} falli</b> in più per {squadra_2} (pressione difensiva alta)."
                     elif diff_fal >= 0.65:
                         verd_fal = f"Leggera Tendenza Falli: {squadra_1}"
-                        col_fal = "#00cc66"
+                        col_fal = "#00e676"
                         cons_fal = f"Vantaggio contenuto (<b>+{diff_fal:.2f} falli</b>). Giocabile solo a quota >= 1.85."
                     elif diff_fal <= -0.65:
                         verd_fal = f"Leggera Tendenza Falli: {squadra_2}"
@@ -1395,10 +1442,10 @@ if not st.session_state.pagina_impostazioni:
                     with col_h2h_tt:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 4px solid {col_tt}; padding: 16px;">
-                            <p style="margin: 0; font-size: 0.78em; color: #aaa; text-transform: uppercase;">👟 Testa a Testa Tiri Totali (1X2)</p>
-                            <h3 style="margin: 6px 0; color: {col_tt}; font-family: 'JetBrains Mono', monospace;">{verd_tt}</h3>
-                            <p style="margin: 0; font-size: 0.85em; color: #ddd;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_tt_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_tt_2:.2f})</b></p>
-                            <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #ccc;">
+                            <p style="margin: 0; font-size: 0.78em; color: #9ca3af; text-transform: uppercase;">👟 Testa a Testa Tiri Totali (1X2)</p>
+                            <h3 style="margin: 6px 0; color: {col_tt} !important; font-family: 'JetBrains Mono', monospace;">{verd_tt}</h3>
+                            <p style="margin: 0; font-size: 0.85em; color: #d1d5db;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_tt_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_tt_2:.2f})</b></p>
+                            <div style="margin-top: 10px; background: #0d1014; border: 1px solid #1e232a; padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #d1d5db;">
                                 💡 {cons_tt}
                             </div>
                         </div>
@@ -1407,10 +1454,10 @@ if not st.session_state.pagina_impostazioni:
                     with col_h2h_tp:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 4px solid {col_tp}; padding: 16px;">
-                            <p style="margin: 0; font-size: 0.78em; color: #aaa; text-transform: uppercase;">🥅 Testa a Testa Tiri in Porta (1X2)</p>
-                            <h3 style="margin: 6px 0; color: {col_tp}; font-family: 'JetBrains Mono', monospace;">{verd_tp}</h3>
-                            <p style="margin: 0; font-size: 0.85em; color: #ddd;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_tp_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_tp_2:.2f})</b></p>
-                            <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #ccc;">
+                            <p style="margin: 0; font-size: 0.78em; color: #9ca3af; text-transform: uppercase;">🥅 Testa a Testa Tiri in Porta (1X2)</p>
+                            <h3 style="margin: 6px 0; color: {col_tp} !important; font-family: 'JetBrains Mono', monospace;">{verd_tp}</h3>
+                            <p style="margin: 0; font-size: 0.85em; color: #d1d5db;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_tp_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_tp_2:.2f})</b></p>
+                            <div style="margin-top: 10px; background: #0d1014; border: 1px solid #1e232a; padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #d1d5db;">
                                 💡 {cons_tp}
                             </div>
                         </div>
@@ -1420,10 +1467,10 @@ if not st.session_state.pagina_impostazioni:
                     with col_h2h_1:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 4px solid {col_cor}; padding: 16px;">
-                            <p style="margin: 0; font-size: 0.78em; color: #aaa; text-transform: uppercase;">🚩 Testa a Testa Corner (1X2)</p>
-                            <h3 style="margin: 6px 0; color: {col_cor}; font-family: 'JetBrains Mono', monospace;">{verd_cor}</h3>
-                            <p style="margin: 0; font-size: 0.85em; color: #ddd;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_cor_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_cor_2:.2f})</b></p>
-                            <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #ccc;">
+                            <p style="margin: 0; font-size: 0.78em; color: #9ca3af; text-transform: uppercase;">🚩 Testa a Testa Corner (1X2)</p>
+                            <h3 style="margin: 6px 0; color: {col_cor} !important; font-family: 'JetBrains Mono', monospace;">{verd_cor}</h3>
+                            <p style="margin: 0; font-size: 0.85em; color: #d1d5db;">Proiezione: {stemma_sq1}<b>{squadra_1} ({proj_cor_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_cor_2:.2f})</b></p>
+                            <div style="margin-top: 10px; background: #0d1014; border: 1px solid #1e232a; padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #d1d5db;">
                                 💡 {cons_cor}
                             </div>
                         </div>
@@ -1432,10 +1479,10 @@ if not st.session_state.pagina_impostazioni:
                     with col_h2h_2:
                         st.markdown(f"""
                         <div class="glass-box" style="border-left: 4px solid {col_fal}; padding: 16px;">
-                            <p style="margin: 0; font-size: 0.78em; color: #aaa; text-transform: uppercase;">🛑 Testa a Testa Falli Commessi (1X2)</p>
-                            <h3 style="margin: 6px 0; color: {col_fal}; font-family: 'JetBrains Mono', monospace;">{verd_fal}</h3>
-                            <p style="margin: 0; font-size: 0.85em; color: #ddd;">Proiezione Tattica: {stemma_sq1}<b>{squadra_1} ({proj_fal_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_fal_2:.2f})</b></p>
-                            <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #ccc;">
+                            <p style="margin: 0; font-size: 0.78em; color: #9ca3af; text-transform: uppercase;">🛑 Testa a Testa Falli Commessi (1X2)</p>
+                            <h3 style="margin: 6px 0; color: {col_fal} !important; font-family: 'JetBrains Mono', monospace;">{verd_fal}</h3>
+                            <p style="margin: 0; font-size: 0.85em; color: #d1d5db;">Proiezione Tattica: {stemma_sq1}<b>{squadra_1} ({proj_fal_1:.2f})</b> vs {stemma_sq2}<b>{squadra_2} ({proj_fal_2:.2f})</b></p>
+                            <div style="margin-top: 10px; background: #0d1014; border: 1px solid #1e232a; padding: 8px 10px; border-radius: 6px; font-size: 0.8em; color: #d1d5db;">
                                 💡 {cons_fal}
                             </div>
                         </div>
@@ -1443,7 +1490,7 @@ if not st.session_state.pagina_impostazioni:
 
                 with tab_scanner:
                     st.markdown("### 📊 Scanner Mercati & Value Bet (Target Singole 1.70 - 2.10)")
-                    st.markdown("<p style='color:#a0a0a0;'>Analisi delle linee principali con soglie ricalibrate per le singole pure.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color:#9ca3af;'>Analisi delle linee principali con soglie ricalibrate per le singole pure.</p>", unsafe_allow_html=True)
                     
                     tipo_filtro = st.radio("Filtro Storico Partite:", ["🌍 Globale (Tutte le partite della squadra)", "🏠/✈️ Specifico (Solo partite giocate in Casa / Trasferta)"], horizontal=True)
                     modalita_scanner = "specifico" if "Specifico" in tipo_filtro else "globale"
@@ -1456,15 +1503,15 @@ if not st.session_state.pagina_impostazioni:
                     col_sc1, col_sc2 = st.columns(2)
                     with col_sc1:
                         titolo_sq1 = f"{squadra_1} (In Casa)" if modalita_scanner == "specifico" else squadra_1
-                        st.markdown(f"<h3 style='text-align: center; color: #00cc66;'>{stemma_sq1}{titolo_sq1}</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='text-align: center; color: #00e676 !important;'>{stemma_sq1}{titolo_sq1}</h3>", unsafe_allow_html=True)
                         if tot_1 > 0:
-                            st.markdown(genera_html_scanner(over_1, goal_1, tot_1, "#00cc66"), unsafe_allow_html=True)
+                            st.markdown(genera_html_scanner(over_1, goal_1, tot_1, "#00e676"), unsafe_allow_html=True)
                         else:
                             st.info(f"Nessun dato storico per {titolo_sq1}.")
                             
                     with col_sc2:
                         titolo_sq2 = f"{squadra_2} (In Trasferta)" if modalita_scanner == "specifico" else squadra_2
-                        st.markdown(f"<h3 style='text-align: center; color: #ff4b4b;'>{stemma_sq2}{titolo_sq2}</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='text-align: center; color: #ff4b4b !important;'>{stemma_sq2}{titolo_sq2}</h3>", unsafe_allow_html=True)
                         if tot_2 > 0:
                             st.markdown(genera_html_scanner(over_2, goal_2, tot_2, "#ff4b4b"), unsafe_allow_html=True)
                         else:
@@ -1477,9 +1524,36 @@ if not st.session_state.pagina_impostazioni:
                     with tab_graf:
                         colonne_numeriche = df_selezionato.select_dtypes(include=['number']).columns.tolist()
                         statistica_scelta = st.selectbox("Seleziona la metrica da visualizzare:", colonne_numeriche)
-                        fig_dinamico = px.bar(df_selezionato.sort_values(by=statistica_scelta, ascending=False), x="Squadra", y=statistica_scelta, title=f"Classifica per: {statistica_scelta}", color=statistica_scelta, color_continuous_scale="Greens", text_auto='.2f', template="plotly_dark")
-                        fig_dinamico.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
-                        fig_dinamico.update_layout(coloraxis_showscale=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family='Outfit'))
+                        scala_emerald_obsidian = [
+                            [0.0, "#164e3f"],
+                            [0.5, "#00a859"],
+                            [1.0, "#00e676"]
+                        ]
+                        fig_dinamico = px.bar(
+                            df_selezionato.sort_values(by=statistica_scelta, ascending=False),
+                            x="Squadra",
+                            y=statistica_scelta,
+                            title=f"Classifica per: {statistica_scelta}",
+                            color=statistica_scelta,
+                            color_continuous_scale=scala_emerald_obsidian,
+                            text_auto='.2f',
+                            template="plotly_dark"
+                        )
+                        fig_dinamico.update_traces(
+                            textfont=dict(size=12, color="#e5e7eb", family="JetBrains Mono"),
+                            textangle=0,
+                            textposition="outside",
+                            cliponaxis=False,
+                            marker_line_width=0
+                        )
+                        fig_dinamico.update_layout(
+                            coloraxis_showscale=False,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(family='Outfit', color='#e5e7eb'),
+                            yaxis=dict(gridcolor='#1d2229', zerolinecolor='#2b313a'),
+                            xaxis=dict(showgrid=False, linecolor='#2b313a')
+                        )
                         st.plotly_chart(fig_dinamico, use_container_width=True)
                         
                     with tab_auto:
@@ -1487,7 +1561,7 @@ if not st.session_state.pagina_impostazioni:
                         f_en = ottieni_bandiera_html('Premier League', 22)
                         f_es = ottieni_bandiera_html('La Liga', 22)
                         st.markdown(f"### 🌍 Scanner Universale Value Bet ({f_it}Serie A &nbsp;•&nbsp; {f_en}Premier League &nbsp;•&nbsp; {f_es}La Liga)", unsafe_allow_html=True)
-                        st.markdown("<p style='color:#a0a0a0;'>Motore <b>Salva-Cassa Pro</b> attivo: integra <b>xGOT, Parate Reali (Serie A), Game State, Cinismo, Qualità Tiro, Forma 5G e Coppe</b>.</p>", unsafe_allow_html=True)
+                        st.markdown("<p style='color:#9ca3af;'>Motore <b>Salva-Cassa Pro</b> attivo: integra <b>xGOT, Parate Reali (Serie A), Game State, Cinismo, Qualità Tiro, Forma 5G e Coppe</b>.</p>", unsafe_allow_html=True)
                         
                         col_sl1, col_sl2 = st.columns([1, 1])
                         with col_sl1:
@@ -1570,7 +1644,7 @@ if not st.session_state.pagina_impostazioni:
 
                                 stemma_c_card = ottieni_stemma_html(casa, lega_pura, size=22)
                                 stemma_t_card = ottieni_stemma_html(trasf, lega_pura, size=22)
-                                match_html_card = f"{stemma_c_card}{casa}{tag_ec_c} <span style='color:#888; font-weight:400;'>vs</span> {stemma_t_card}{trasf}{tag_ec_t}"
+                                match_html_card = f"{stemma_c_card}{casa}{tag_ec_c} <span style='color:#6b7280; font-weight:400;'>vs</span> {stemma_t_card}{trasf}{tag_ec_t}"
                                 flag_card_html = f"{ottieni_bandiera_html(lega_pura, 16)}{lega_pura}"
 
                                 xg_c_att = dati_c.get('xG Casa', 1.0)
@@ -1910,7 +1984,6 @@ if not st.session_state.pagina_impostazioni:
 
                                 aggiungi_mercato_statistico('Falli', 'Linea Over Falli', 'Quota Over Falli', falli_c, falli_t, 'Falli Commessi Casa', 'Falli Commessi Trasferta', '🛑', 1.2, m_fal_c, m_fal_t)
 
-                                # Mercati Opzionali Parate Portiere (se presenti nel Palinsesto)
                                 sub_tp_t_sc, _ = stima_stat_subita(df_lega_match, dati_t, 'Trasferta', 'Tiri in porta Casa', 'Tiri in porta Trasferta')
                                 sub_tp_c_sc, _ = stima_stat_subita(df_lega_match, dati_c, 'Casa', 'Tiri in porta Trasferta', 'Tiri in porta Casa')
                                 proj_tp_c_sc = ((porta_c + sub_tp_t_sc) / 2.0 if sub_tp_t_sc > 0 else porta_c) * m_tp_c
@@ -1949,11 +2022,11 @@ if not st.session_state.pagina_impostazioni:
                                     
                                     mappa_colori = {}
                                     palette_colori = [
-                                        'rgba(0, 204, 102, 0.15)', 
-                                        'rgba(0, 153, 255, 0.15)', 
-                                        'rgba(255, 153, 0, 0.15)', 
-                                        'rgba(204, 0, 204, 0.15)', 
-                                        'rgba(255, 51, 51, 0.15)'
+                                        'rgba(0, 230, 118, 0.08)', 
+                                        'rgba(56, 189, 248, 0.08)', 
+                                        'rgba(255, 183, 3, 0.08)', 
+                                        'rgba(168, 85, 247, 0.08)', 
+                                        'rgba(255, 75, 75, 0.08)'
                                     ]
                                     
                                     for i, match in enumerate(partite_ripetute):
@@ -1966,13 +2039,13 @@ if not st.session_state.pagina_impostazioni:
                                         nome_match = bet['Partita']
                                         nome_match_html = bet.get('Partita_HTML', nome_match)
                                         lega_badge_html = bet.get('Campionato_HTML', bet['Campionato'])
-                                        colore_sfondo = mappa_colori.get(nome_match, 'rgba(22, 26, 33, 0.7)')
+                                        colore_sfondo = mappa_colori.get(nome_match, '#13171d')
                                         contro_muro = bet.get('Contro_Muro', False)
                                         n_sem = bet.get('Semafori', 2)
                                         sem_html = bet.get('Semafori_HTML', '')
                                         is_top_match = bet.get('Prima_Scelta', False)
                                         
-                                        tag_scelta = "<span style='background:rgba(0,204,102,0.2); color:#00cc66; border:1px solid rgba(0,204,102,0.4); padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px; font-weight:700;'>👑 1ª SCELTA MATCH</span>" if is_top_match else "<span style='background:rgba(255,255,255,0.06); color:#999; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px;'>Alternativa</span>"
+                                        tag_scelta = "<span style='background:rgba(0,230,118,0.14); color:#00e676; border:1px solid rgba(0,230,118,0.38); padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px; font-weight:700;'>👑 1ª SCELTA MATCH</span>" if is_top_match else "<span style='background:#1a1f27; color:#9ca3af; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-left:6px;'>Alternativa</span>"
 
                                         if contro_muro:
                                             col_bordo = "#ffb703"
@@ -1984,7 +2057,7 @@ if not st.session_state.pagina_impostazioni:
                                                 badge = "🛡️ BLINDATA 3/3 (1X2)"
                                                 puntata = "3 Unità (Alta Fiducia)"
                                             elif eff >= 6.0 and n_sem >= 2:
-                                                col_bordo = "#00cc66"
+                                                col_bordo = "#00e676"
                                                 badge = "🟢 OTTIMA (1X2)"
                                                 puntata = "2 Unità (Rischio Medio)"
                                             else:
@@ -1997,7 +2070,7 @@ if not st.session_state.pagina_impostazioni:
                                                 badge = "🛡️ SUPER BLINDATA (3/3)"
                                                 puntata = "3 Unità (Alta Fiducia)"
                                             elif eff >= 11.0 and n_sem >= 2:
-                                                col_bordo = "#00cc66"
+                                                col_bordo = "#00e676"
                                                 badge = "🟢 OTTIMA SCELTA"
                                                 puntata = "2 Unità (Rischio Medio)"
                                             else:
@@ -2006,26 +2079,26 @@ if not st.session_state.pagina_impostazioni:
                                                 puntata = "1 Unità (Rischio Basso)"
                                             
                                         html_cards += f"""
-                                        <div style="background: {colore_sfondo}; backdrop-filter: blur(10px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); border-left: 5px solid {col_bordo}; padding: 10px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+                                        <div style="background: {colore_sfondo}; border-radius: 10px; border: 1px solid #222831; border-left: 5px solid {col_bordo}; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.22); transition: transform 0.2s ease;">
                                             <div style="flex: 1.8; padding-right: 10px;">
-                                                <span style="font-size: 0.72em; color: #ddd; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{lega_badge_html}</span>{tag_scelta}
-                                                <h4 style="margin: 6px 0 2px 0; color: #fff; font-size: 1.05em; font-weight: 700;">{nome_match_html}</h4>
-                                                <p style="margin: 2px 0 2px 0; color: #00cc66; font-weight: 700; font-size: 0.95em;">{bet['Mercato Consigliato']}</p>
-                                                <p style="margin: 0; font-size: 0.75em; color: #aaa;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b style="color:#fff;">{bet['Linea Eplay24']}</b></p>
+                                                <span style="font-size: 0.72em; color: #e5e7eb; background: #1c222b; border: 1px solid #2b313a; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{lega_badge_html}</span>{tag_scelta}
+                                                <h4 style="margin: 6px 0 2px 0; color: #fff !important; font-size: 1.05em; font-weight: 700;">{nome_match_html}</h4>
+                                                <p style="margin: 2px 0 2px 0; color: #00e676; font-weight: 700; font-size: 0.95em;">{bet['Mercato Consigliato']}</p>
+                                                <p style="margin: 0; font-size: 0.75em; color: #9ca3af;">Proiezione: <b>{bet['Proiezione WebApp']}</b> | Linea: <b style="color:#fff;">{bet['Linea Eplay24']}</b></p>
                                             </div>
-                                            <div style="flex: 1.7; text-align: center; border-left: 1px solid rgba(255,255,255,0.1); padding: 0 10px;">
-                                                <p style="margin: 0; font-size: 0.68em; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Checklist Salva-Cassa Pro</p>
-                                                <p style="margin: 3px 0; font-size: 0.74em; color: #eee; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 4px;">{sem_html}</p>
-                                                <p style="margin: 2px 0; font-size: 0.72em; color: #00cc66;">{bet['Spia_Tattica']} | Reale: <b style="font-family: JetBrains Mono, monospace;">{bet['Proiezione_Finale']}</b></p>
+                                            <div style="flex: 1.7; text-align: center; border-left: 1px solid #222831; padding: 0 10px;">
+                                                <p style="margin: 0; font-size: 0.68em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Checklist Salva-Cassa Pro</p>
+                                                <p style="margin: 4px 0; font-size: 0.74em; color: #e5e7eb; background: #0d1014; border: 1px solid #1e232a; padding: 4px 6px; border-radius: 5px;">{sem_html}</p>
+                                                <p style="margin: 2px 0; font-size: 0.72em; color: #00e676;">{bet['Spia_Tattica']} | Reale: <b style="font-family: JetBrains Mono, monospace;">{bet['Proiezione_Finale']}</b></p>
                                             </div>
-                                            <div style="flex: 0.85; text-align: center; border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); padding: 0 10px;">
-                                                <p style="margin: 0; font-size: 0.7em; color: #00cc66; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Eplay24</p>
-                                                <h2 style="margin: 2px 0 0 0; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 1.4em;">{bet['Quota Eplay24']}</h2>
+                                            <div style="flex: 0.85; text-align: center; border-left: 1px solid #222831; border-right: 1px solid #222831; padding: 0 10px;">
+                                                <p style="margin: 0; font-size: 0.7em; color: #00e676; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">Eplay24</p>
+                                                <h2 style="margin: 2px 0 0 0; color: #fff !important; font-family: 'JetBrains Mono', monospace; font-size: 1.4em;">{bet['Quota Eplay24']}</h2>
                                             </div>
                                             <div style="flex: 1.35; text-align: right; padding-left: 10px;">
                                                 <p style="margin: 0; font-size: 0.75em; color: {col_bordo}; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">{badge}</p>
-                                                <h1 style="margin: 0; color: {col_bordo}; font-weight: 800; font-size: 1.6em; font-family: 'JetBrains Mono', monospace;">+{eff:.1f}%</h1>
-                                                <p style="margin: 0; font-size: 0.75em; color: #aaa;"><b style="color: #fff;">{puntata}</b></p>
+                                                <h1 style="margin: 0; color: {col_bordo} !important; font-weight: 800; font-size: 1.6em; font-family: 'JetBrains Mono', monospace;">+{eff:.1f}%</h1>
+                                                <p style="margin: 0; font-size: 0.75em; color: #9ca3af;"><b style="color: #fff;">{puntata}</b></p>
                                             </div>
                                         </div>
                                         """
@@ -2040,8 +2113,8 @@ if not st.session_state.pagina_impostazioni:
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                         {stemma_singolo if stemma_singolo else '<span style="font-size:2.5em;">⚽</span>'}
                         <div>
-                            <h2 style="margin:0; color:#fff;">Profilo Statistico: {squadra_scelta}</h2>
-                            <p style="margin:4px 0 0 0; color:#ccc;"><b>Trend Recente (Ultime 5):</b> {forma_str}</p>
+                            <h2 style="margin:0; color:#fff !important;">Profilo Statistico: {squadra_scelta}</h2>
+                            <p style="margin:4px 0 0 0; color:#d1d5db;"><b>Trend Recente (Ultime 5):</b> {forma_str}</p>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -2055,7 +2128,7 @@ if not st.session_state.pagina_impostazioni:
                     tot_p, perc_over, perc_goal = calcola_mercati_betting(squadra_scelta, df_partite, modalita="globale")
                     if tot_p > 0:
                         st.markdown("### 🎯 Scanner Mercati Storici (Globale)")
-                        st.markdown(genera_html_scanner(perc_over, perc_goal, tot_p, "#00cc66"), unsafe_allow_html=True)
+                        st.markdown(genera_html_scanner(perc_over, perc_goal, tot_p, "#00e676"), unsafe_allow_html=True)
                         st.divider()
                     
                     st.markdown("### ⚔️ Fase Offensiva")
@@ -2136,8 +2209,8 @@ elif st.session_state.pagina_impostazioni:
 
 st.sidebar.markdown(
     """
-    <div style="margin-top: 60px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.05); color: #666; font-size: 0.85em; text-align: left;">
-        <span style="font-weight: 600; color: #888; font-family: 'Outfit', sans-serif;">by Alessandro Gusmeroli</span>
+    <div style="margin-top: 60px; padding-top: 15px; border-top: 1px solid #1d2229; color: #6b7280; font-size: 0.85em; text-align: left;">
+        <span style="font-weight: 600; color: #8b949e; font-family: 'Outfit', sans-serif;">by Alessandro Gusmeroli</span>
     </div>
     """,
     unsafe_allow_html=True
