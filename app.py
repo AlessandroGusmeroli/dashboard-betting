@@ -60,7 +60,6 @@ st.markdown("""
         animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
-    /* Intestazioni pulite stile default su sfondo carbonio */
     h1 {
         color: #ffffff !important;
         font-weight: 800 !important;
@@ -87,45 +86,58 @@ st.markdown("""
 
     /* Sidebar Grafite Scura */
     [data-testid="stSidebar"] {
-        background-color: #101317 !important;
-        border-right: 1px solid #1d2229 !important;
+        background-color: #0f1318 !important;
+        border-right: 1px solid #1d242e !important;
     }
     [data-testid="stSidebar"] h1 {
         color: #00e676 !important;
         font-size: 1.55rem !important;
     }
 
-    /* Menu a tendina e input: Antracite puro opaco (zero marroncino) */
-    div[data-baseweb="select"] > div,
+    /* Forza Grigio-Acciaio Freddo (#131920) su TUTTI i livelli interni di Tendine e Input */
+    [data-testid="stSelectbox"] div[data-baseweb="select"],
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"],
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div > div,
+    div[data-baseweb="base-input"],
     div[data-baseweb="base-input"] > div,
+    div[data-baseweb="input"],
     div[data-baseweb="input"] > div {
-        background-color: #161a20 !important;
-        border: 1px solid #2b313a !important;
+        background-color: #131920 !important;
+        background: #131920 !important;
         color: #f3f4f6 !important;
+    }
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"],
+    div[data-baseweb="input"] {
+        border: 1px solid #26313f !important;
         border-radius: 10px !important;
+        overflow: hidden !important;
         transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    div[data-baseweb="select"] > div:hover,
-    div[data-baseweb="base-input"] > div:hover,
-    div[data-baseweb="input"] > div:hover {
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="base-input"]:hover,
+    div[data-baseweb="input"]:hover {
         border-color: rgba(0, 230, 118, 0.55) !important;
     }
-    div[data-baseweb="select"] > div:focus-within,
-    div[data-baseweb="base-input"] > div:focus-within,
-    div[data-baseweb="input"] > div:focus-within {
-        border-color: #00e676 !important;
-        box-shadow: 0 0 0 1px rgba(0, 230, 118, 0.25) !important;
-    }
+    div[data-baseweb="popover"],
     div[data-baseweb="popover"] > div,
     ul[data-baseweb="menu"] {
-        background-color: #161a20 !important;
-        border: 1px solid #2b313a !important;
+        background-color: #131920 !important;
+        border: 1px solid #26313f !important;
         border-radius: 10px !important;
     }
-    ul[data-baseweb="menu"] li:hover {
-        background-color: #202630 !important;
+    ul[data-baseweb="menu"] li {
+        background-color: #131920 !important;
+        color: #f3f4f6 !important;
     }
-    /* Tag del multiselect (Coppe) */
+    ul[data-baseweb="menu"] li:hover {
+        background-color: #1c2631 !important;
+    }
     span[data-baseweb="tag"] {
         background-color: rgba(0, 230, 118, 0.16) !important;
         border: 1px solid rgba(0, 230, 118, 0.4) !important;
@@ -133,23 +145,21 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    hr {
-        border-color: #1d2229 !important;
-    }
+    hr { border-color: #1d242e !important; }
     
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0a0c0f; }
-    ::-webkit-scrollbar-thumb { background: #262c36; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #36404f; }
+    ::-webkit-scrollbar-thumb { background: #26313f; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #364559; }
 
     /* Schede Tab */
-    .stTabs [data-baseweb="tab-list"] { gap: 2rem; border-bottom: 1px solid #1d2229; }
+    .stTabs [data-baseweb="tab-list"] { gap: 2rem; border-bottom: 1px solid #1d242e; }
     .stTabs [data-baseweb="tab"] { height: 48px; font-weight: 600; font-size: 1.02rem; color: #8b949e; padding-bottom: 10px; transition: color 0.25s ease; }
     .stTabs [data-baseweb="tab"]:hover { color: #e5e7eb; }
     .stTabs [aria-selected="true"] { color: #00e676 !important; border-bottom-color: #00e676 !important; }
     
-    /* Pulsanti Neon Emerald */
-    .stButton>button, div[data-testid="stFormSubmitButton"]>button, a[data-testid="stLinkButton"] { 
+    /* Pulsanti Neon Emerald (incluso ⚙️ con tooltip) */
+    .stButton button, div[data-testid="stFormSubmitButton"] button, a[data-testid="stLinkButton"] { 
         border-radius: 10px !important; 
         background: rgba(0, 230, 118, 0.13) !important; 
         color: #00e676 !important; 
@@ -158,7 +168,7 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(0, 230, 118, 0.08) !important;
         transition: all 0.25s ease !important;
     }
-    .stButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover, a[data-testid="stLinkButton"]:hover { 
+    .stButton button:hover, div[data-testid="stFormSubmitButton"] button:hover, a[data-testid="stLinkButton"]:hover { 
         background: #00e676 !important; 
         color: #0a0c0f !important;
         border-color: #00e676 !important;
@@ -168,8 +178,8 @@ st.markdown("""
     
     /* Metriche Carbon */
     div[data-testid="metric-container"] {
-        background: #13171d !important;
-        border: 1px solid #222831 !important;
+        background: #131920 !important;
+        border: 1px solid #222b36 !important;
         padding: 15% 10% !important;
         border-radius: 14px !important;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25) !important;
@@ -188,31 +198,31 @@ st.markdown("""
     
     /* Card Obsidian Matte */
     .glass-box {
-        background: #13171d;
-        border: 1px solid #222831;
+        background: #131920;
+        border: 1px solid #222b36;
         border-radius: 14px;
         padding: 22px;
         box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
         margin-bottom: 22px;
         transition: border-color 0.25s ease;
     }
-    .glass-box:hover { border-color: #2f3845; }
+    .glass-box:hover { border-color: #2f3c4b; }
     
     [data-testid="stTable"] table { width: 100% !important; background: transparent !important; color: #e5e7eb; border-collapse: collapse; }
     [data-testid="stTable"] tbody tr { transition: background-color 0.2s ease; }
     [data-testid="stTable"] tbody tr:hover { background-color: rgba(255, 255, 255, 0.04) !important; }
     [data-testid="stTable"] th {
-        background-color: #161a20 !important;
+        background-color: #131920 !important;
         color: #ffffff !important;
         font-weight: 600 !important;
-        border-bottom: 1px solid #262c36 !important;
+        border-bottom: 1px solid #26313f !important;
         text-transform: uppercase;
         font-size: 0.85em;
         letter-spacing: 1px;
     }
     [data-testid="stTable"] th, [data-testid="stTable"] td { 
         text-align: center !important; 
-        border-color: #1d2229 !important;
+        border-color: #1d242e !important;
         padding: 12px 8px !important;
     }
 </style>
